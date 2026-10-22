@@ -39,8 +39,20 @@ Az eredeti oldal útvonalai és az adapter megfeleltetése:
 
 majd `http://localhost:8000/`.
 
+## A Data Explorer tartalma
+
+Az eredeti oldal teljes, 2,29 milliós posztállománya csak a már nem elérhető adatbázisában volt.
+A tükör `posts` táblája két forrásból áll (a `forras` oszlop jelzi):
+
+| `forras` | Tartalom |
+| --- | --- |
+| `agendaz_statikus` | Az eredeti oldal összes publikált Explorer-lapja (minden szűrő első lapjai), 14 516 poszt, mind a 42 változóval |
+| `d41_minta` | Szisztematikus minta a SPINE D4.1 `full_dataset.csv`-ből (`spine_minta_feltoltes.py`), csak a D4.1-ben meglévő oszlopokkal |
+
+Ezért a találatszámok kisebbek az eredetinél, és a `d41_minta` sorainál a hat másik domén és a prozelitizmus
+címkéje üres.
+
 ## Korlátok
 
-- Az ingyenes Supabase-csomag 500 MB-os, ezért a Data Explorer nem a teljes 2,29 millió posztot tartalmazza
-  (lásd a `posts` tábla tartalmát).
-- A forrásadat a SPINE D4.1 replikációs csomagjából és az eredeti oldal publikált adatfájljaiból származik.
+- Az ingyenes Supabase-csomag 500 MB-os.
+- A hálózati fiókok posztjai (`account_posts`) teljesek: 18 619 fiók, 75 712 poszt.
