@@ -1,0 +1,1562 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Network Visualisations — AgendaZ</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <meta name="theme-color" content="#f8f3e9" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="d3.min.js"></script>
+    <style>
+      /* ── Network canvas ──────────────────────────────────────────────── */
+      .net-wrap {
+        position: relative;
+        background: #06080f;
+        border-radius: var(--radius);
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow-md);
+        overflow: hidden;
+        height: 75vh;
+        min-height: 480px;
+      }
+
+      #net-svg {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+
+      #net-svg .link { stroke: #00e5ff; stroke-opacity: 0.18; }
+      #net-svg .node { fill-opacity: 0.82; stroke: #06080f; stroke-width: 0.8; }
+      #net-svg .label {
+        font-size: 9px;
+        fill: rgba(220, 230, 255, 0.9);
+        pointer-events: none;
+        font-family: "JetBrains Mono", monospace;
+        text-shadow: 0 0 4px #06080f, 0 0 8px #06080f;
+      }
+
+      /* ── Controls bar ────────────────────────────────────────────────── */
+      .net-controls {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+        padding: 12px 18px;
+        background: var(--paper);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
+        margin-top: 12px;
+      }
+
+      .net-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        height: 34px;
+        padding: 0 14px;
+        border-radius: 8px;
+        border: 1px solid var(--border-strong);
+        background: var(--paper);
+        color: var(--ink);
+        font-size: 13px;
+        font-family: inherit;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.15s var(--ease);
+      }
+
+      .net-btn:hover { border-color: var(--purple); color: var(--purple-deep); }
+      .net-btn.is-active { background: var(--purple); color: #fff; border-color: var(--purple); }
+
+      .net-date {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 12px;
+        color: var(--purple-deep);
+        background: var(--purple-soft);
+        padding: 4px 10px;
+        border-radius: 6px;
+        border: 1px solid var(--purple-light);
+        white-space: nowrap;
+      }
+
+      .net-progress-wrap {
+        flex: 1;
+        min-width: 160px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      #timeline-range {
+        width: 100%;
+        accent-color: var(--purple);
+        cursor: pointer;
+      }
+
+      #net-date-input {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 12px;
+        color: var(--purple-deep);
+        background: var(--purple-soft);
+        padding: 4px 8px;
+        border-radius: 6px;
+        border: 1px solid var(--purple-light);
+        white-space: nowrap;
+        cursor: text;
+        width: 130px;
+      }
+      #net-date-input:focus { outline: 2px solid var(--purple); }
+
+      .net-speed {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--ink-faint);
+        white-space: nowrap;
+      }
+
+      .net-speed input[type=range] {
+        width: 80px;
+        accent-color: var(--purple);
+      }
+
+      .net-stats {
+        font-size: 11.5px;
+        color: var(--ink-faint);
+        font-family: "JetBrains Mono", monospace;
+        white-space: nowrap;
+      }
+
+      /* ── Loading overlay ─────────────────────────────────────────────── */
+      .net-loading {
+        position: absolute;
+        inset: 0;
+        background: rgba(6, 8, 15, 0.92);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 18px;
+        z-index: 10;
+      }
+
+      .net-loading.hidden { display: none; }
+
+      .net-spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid rgba(139, 92, 246, 0.25);
+        border-top-color: #8b5cf6;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+
+      .net-loading-text {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 13px;
+        color: rgba(200, 216, 240, 0.85);
+        text-align: center;
+        max-width: 300px;
+        line-height: 1.6;
+      }
+
+      .net-loading-sub {
+        font-size: 11px;
+        color: rgba(141, 130, 149, 0.7);
+        margin-top: 4px;
+      }
+
+      .net-error {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 12px;
+        color: #f87171;
+        text-align: center;
+        max-width: 360px;
+        padding: 0 20px;
+        line-height: 1.6;
+      }
+
+      /* ── Network insights panel ─────────────────────────────────────── */
+      .net-insights {
+        margin-top: 24px;
+        background: var(--paper);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        overflow: hidden;
+      }
+      .ni-header {
+        padding: 14px 20px 12px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .ni-header-title {
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--ink-dim);
+      }
+      .ni-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0;
+      }
+      .ni-card {
+        padding: 18px 20px;
+        border-right: 1px solid var(--border);
+      }
+      .ni-card:last-child { border-right: none; }
+      .ni-card-full {
+        grid-column: 1 / -1;
+        border-top: 1px solid var(--border);
+        border-right: none;
+        padding: 18px 20px;
+      }
+      .ni-card-title {
+        font-size: 10.5px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--ink-faint);
+        margin-bottom: 14px;
+      }
+      /* Bar chart */
+      .ni-bar-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 7px;
+      }
+      .ni-bar-row:last-child { margin-bottom: 0; }
+      .ni-bar-month {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 10px;
+        color: var(--ink-dim);
+        min-width: 50px;
+        flex-shrink: 0;
+      }
+      .ni-bar-track {
+        flex: 1;
+        height: 7px;
+        background: var(--border);
+        border-radius: 4px;
+        overflow: hidden;
+      }
+      .ni-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #8b5cf6, #6d28d9);
+        border-radius: 4px;
+      }
+      .ni-bar-fill.peak { background: linear-gradient(90deg, #a78bfa, #7c3aed); }
+      .ni-bar-count {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 10px;
+        color: var(--ink-faint);
+        min-width: 26px;
+        text-align: right;
+        flex-shrink: 0;
+      }
+      /* Time-gap stats */
+      .ni-stat-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        padding: 5px 0;
+        border-bottom: 1px solid var(--border);
+        font-size: 12px;
+        gap: 12px;
+      }
+      .ni-stat-row:last-child { border-bottom: none; padding-bottom: 0; }
+      .ni-stat-label { color: var(--ink-dim); flex-shrink: 0; }
+      .ni-stat-val {
+        font-family: "JetBrains Mono", monospace;
+        font-weight: 600;
+        color: var(--ink);
+        text-align: right;
+      }
+      /* Narrative labels */
+      .ni-lbl-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+      }
+      .ni-lbl-row {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        padding: 7px 0;
+        border-bottom: 1px solid var(--border);
+        font-size: 12px;
+      }
+      .ni-lbl-row:last-child { border-bottom: none; padding-bottom: 0; }
+      .ni-lbl-rank {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 10px;
+        color: var(--ink-faint);
+        min-width: 16px;
+        flex-shrink: 0;
+      }
+      .ni-lbl-text { flex: 1; color: var(--ink-dim); line-height: 1.45; }
+      .ni-lbl-count {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        color: var(--purple-deep);
+        font-weight: 700;
+        flex-shrink: 0;
+      }
+      .ni-loading {
+        font-size: 11px;
+        color: var(--ink-faint);
+        font-style: italic;
+        padding: 8px 0;
+      }
+      .ni-loading-inline {
+        font-size: 11px;
+        color: var(--ink-faint);
+        font-style: italic;
+        font-weight: normal;
+        font-family: inherit;
+      }
+      @media (max-width: 640px) {
+        .ni-grid { grid-template-columns: 1fr; }
+        .ni-card { border-right: none; border-bottom: 1px solid var(--border); }
+        .ni-card:last-child { border-bottom: none; }
+      }
+
+      /* ── Node / edge post panel ─────────────────────────────────────── */
+
+      /* Reuse .detail-overlay / .detail-panel from styles.css; just rename
+         so the two panels don't conflict. */
+      .net-post-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(15,6,28,0.45);
+        z-index: 100;
+        backdrop-filter: blur(2px);
+      }
+      .net-post-overlay.is-open { display: block; }
+
+      .net-post-panel {
+        position: fixed;
+        top: 0; right: 0; bottom: 0;
+        width: min(540px, 96vw);
+        background: var(--paper);
+        z-index: 101;
+        transform: translateX(100%);
+        transition: transform 0.3s cubic-bezier(0.22,1,0.36,1);
+        box-shadow: var(--shadow-lg);
+        border-left: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+      }
+      .net-post-panel.is-open { transform: translateX(0); }
+
+      .net-post-header {
+        background: var(--paper);
+        border-bottom: 1px solid var(--border);
+        padding: 16px 20px;
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        flex-shrink: 0;
+      }
+      .net-post-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--ink);
+        word-break: break-all;
+        font-family: "JetBrains Mono", monospace;
+      }
+      .net-post-subtitle {
+        font-size: 11px;
+        color: var(--ink-faint);
+        font-family: "JetBrains Mono", monospace;
+        margin-top: 3px;
+      }
+      .net-post-body { padding: 4px 20px 20px; flex: 1; overflow-y: auto; }
+
+      /* Individual post cards inside the panel */
+      .np-card {
+        padding: 14px 0;
+        border-bottom: 1px solid var(--border);
+      }
+      .np-card:last-child { border-bottom: none; }
+      .np-meta {
+        display: flex;
+        gap: 7px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 6px;
+      }
+      .np-date {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 10.5px;
+        color: var(--ink-faint);
+      }
+      .np-user {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--purple-deep);
+      }
+      .np-text {
+        font-size: 13px;
+        color: var(--ink-dim);
+        line-height: 1.55;
+        margin: 5px 0;
+      }
+      .np-labels {
+        display: flex;
+        gap: 5px;
+        flex-wrap: wrap;
+        margin-top: 6px;
+      }
+      .np-lbl {
+        font-size: 10px;
+        padding: 2px 7px;
+        border-radius: 999px;
+        background: var(--purple-soft);
+        color: var(--purple-deep);
+        border: 1px solid var(--purple-light);
+      }
+      .np-lbl.ukraine {
+        background: var(--amber-soft);
+        color: var(--amber-deep);
+        border-color: rgba(184,135,70,.3);
+      }
+      .np-lbl.lgbtq {
+        background: rgba(190,58,77,.08);
+        color: var(--rose);
+        border-color: rgba(190,58,77,.25);
+      }
+      .np-lbl.migration {
+        background: rgba(16,185,129,.10);
+        color: #065f46;
+        border-color: rgba(16,185,129,.30);
+      }
+      .np-lbl.inequality {
+        background: rgba(37,99,235,.10);
+        color: #1e3a8a;
+        border-color: rgba(37,99,235,.30);
+      }
+      .np-lbl.public_health {
+        background: rgba(217,119,6,.10);
+        color: #92400e;
+        border-color: rgba(217,119,6,.30);
+      }
+      .np-lbl.climate {
+        background: rgba(5,150,105,.10);
+        color: #064e3b;
+        border-color: rgba(5,150,105,.30);
+      }
+      .np-lbl.security {
+        background: rgba(220,38,38,.10);
+        color: #7f1d1d;
+        border-color: rgba(220,38,38,.30);
+      }
+      .np-lbl.corruption {
+        background: rgba(124,58,237,.10);
+        color: #4c1d95;
+        border-color: rgba(124,58,237,.30);
+      }
+      .np-account-sep {
+        padding: 10px 0 6px;
+        margin-top: 10px;
+        border-top: 1px solid var(--border);
+        font-size: 10.5px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .12em;
+        color: var(--purple-deep);
+        font-family: "JetBrains Mono", monospace;
+        word-break: break-all;
+      }
+      .np-empty {
+        padding: 32px 0;
+        text-align: center;
+        color: var(--ink-faint);
+        font-size: 13px;
+      }
+      #net-svg .link { cursor: pointer; }
+      #net-svg .node { cursor: pointer; }
+
+      /* ── Panel tab bar ───────────────────────────────────────────────── */
+      .net-tab-bar {
+        display: flex;
+        border-bottom: 1px solid var(--border);
+        background: var(--paper);
+        flex-shrink: 0;
+      }
+      .net-tab-btn {
+        flex: 1;
+        padding: 10px 14px;
+        font-size: 12.5px;
+        font-weight: 600;
+        color: var(--ink-dim);
+        background: none;
+        border: none;
+        border-bottom: 2px solid transparent;
+        cursor: pointer;
+        font-family: inherit;
+        transition: color 0.15s, border-color 0.15s;
+        text-align: center;
+      }
+      .net-tab-btn.is-active {
+        color: var(--purple-deep);
+        border-bottom-color: var(--purple);
+      }
+      .net-tab-btn:hover:not(.is-active) {
+        color: var(--ink);
+        background: var(--bg-soft, #f5f0fb);
+      }
+      .np-info-bar {
+        font-size: 11px;
+        color: var(--ink-faint);
+        font-family: "JetBrains Mono", monospace;
+        padding: 10px 0 6px;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 2px;
+      }
+
+      /* ── Tooltip ─────────────────────────────────────────────────────── */
+      .net-tooltip {
+        position: absolute;
+        background: rgba(15, 6, 28, 0.92);
+        color: rgba(200, 216, 240, 0.95);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        padding: 7px 11px;
+        border-radius: 8px;
+        border: 1px solid rgba(139, 92, 246, 0.35);
+        pointer-events: none;
+        white-space: pre;
+        line-height: 1.65;
+        display: none;
+        z-index: 20;
+        max-width: 280px;
+        white-space: normal;
+        word-break: break-word;
+      }
+    </style>
+      <script src="spine-config.js"></script>
+    <script src="spine-data.js"></script>
+  </head>
+  <body>
+    <header class="nav">
+      <a href="index.html" class="logo" aria-label="AgendaZ home">
+        <img src="favicon.svg" class="logo-mark" alt="" aria-hidden="true" width="30" height="30" />
+        <span class="logo-text"><span class="logo-prefix">Agenda</span><span class="logo-suffix">Z</span></span>
+      </a>
+      <nav class="nav-links" aria-label="Main">
+        <a href="index.html">Home</a>
+        <a href="data-explorer.html">Data Explorer</a>
+        <a href="statistics.html">Statistics</a>
+        <a href="networks.html">Networks</a>
+        <a href="communities.html">Communities</a>
+        <a href="proselytism.html">Proselytism</a>
+        <a href="narrative-conflation.html">Narrative Conflation</a>
+        <a href="latent-dynamics.html">Latent Dynamics</a>
+        <a href="information.html">Information</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="page-hero">
+        <div class="page-hero-bg network" aria-hidden="true"></div>
+        <div class="page-hero-content">
+          <span class="section-label">Co-sharing networks</span>
+          <h1>Network <span class="gradient-text">Visualisations</span></h1>
+          <p class="lead">
+            Dynamic force-directed graphs of account co-sharing networks — computed live
+            from the raw data. Nodes are accounts; edges appear when accounts share the
+            same content within a 60-second window. Colours denote community clusters.
+          </p>
+        </div>
+      </section>
+
+      <section class="body-section">
+        <div class="container">
+
+          <!-- View toggle -->
+          <div style="display:flex;gap:4px;margin-bottom:12px">
+            <a href="networks.html" style="font-size:12px;font-weight:600;padding:5px 14px;border-radius:999px;border:1px solid var(--purple);background:var(--purple);color:#fff;text-decoration:none">Full network</a>
+            <a href="networks-coordinated.html" style="font-size:12px;font-weight:600;padding:5px 14px;border-radius:999px;border:1px solid var(--border-strong);color:var(--ink-dim);text-decoration:none">High-coordination</a>
+          </div>
+
+          <!-- Topic tabs -->
+          <div class="network-tabs" role="tablist" aria-label="Topic networks">
+            <button class="network-tab is-active" role="tab" aria-selected="true" data-topic="eu_elections">
+              EU Elections
+            </button>
+            <button class="network-tab" role="tab" aria-selected="false" data-topic="lgbtq">
+              LGBTQ
+            </button>
+            <button class="network-tab" role="tab" aria-selected="false" data-topic="ukrainian_war">
+              Ukrainian War
+            </button>
+            <button class="network-tab" role="tab" aria-selected="false" data-topic="migration">
+              Migration
+            </button>
+            <button class="network-tab" role="tab" aria-selected="false" data-topic="inequality">
+              Inequality
+            </button>
+            <button class="network-tab" role="tab" aria-selected="false" data-topic="public_health">
+              Public Health
+            </button>
+            <button class="network-tab" role="tab" aria-selected="false" data-topic="climate">
+              Climate Change
+            </button>
+            <button class="network-tab" role="tab" aria-selected="false" data-topic="security">
+              Security
+            </button>
+            <button class="network-tab" role="tab" aria-selected="false" data-topic="corruption">
+              Corruption
+            </button>
+          </div>
+
+          <p class="network-desc" id="net-desc"></p>
+
+          <!-- Canvas -->
+          <div class="net-wrap" id="net-wrap">
+            <!-- Loading overlay -->
+            <div class="net-loading" id="net-loading">
+              <div class="net-spinner"></div>
+              <div class="net-loading-text">
+                Computing network…
+                <div class="net-loading-sub" id="net-loading-sub">
+                  This runs the full CooRnet pipeline on the raw CSV.<br />
+                  First load takes 30–90 s; subsequent loads are instant.
+                </div>
+              </div>
+            </div>
+            <svg id="net-svg"><g id="net-g"></g></svg>
+            <div class="net-tooltip" id="net-tooltip"></div>
+          </div>
+
+          <!-- Controls -->
+          <div class="net-controls" id="net-controls">
+            <button class="net-btn is-active" id="btn-play">&#9654; Play</button>
+            <button class="net-btn" id="btn-restart">&#8635; Restart</button>
+            <input type="date" id="net-date-input" title="Jump to date" aria-label="Jump to date" />
+            <div class="net-progress-wrap">
+              <input type="range" id="timeline-range" min="0" max="0" step="1" value="0" aria-label="Timeline position" />
+            </div>
+            <div class="net-speed">
+              Speed
+              <input type="range" id="speed-range" min="50" max="1000" step="50" value="400" aria-label="Playback speed" />
+            </div>
+            <div class="net-stats" id="net-stats">—</div>
+          </div>
+
+          <!-- Insights panel -->
+          <div class="net-insights" id="net-insights" hidden>
+            <div class="ni-header">
+              <span class="ni-header-title">Network insights</span>
+            </div>
+            <div class="ni-grid">
+              <div class="ni-card" id="ni-peak"></div>
+              <div class="ni-card" id="ni-time"></div>
+              <div class="ni-card ni-card-full" id="ni-labels"></div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+    </main>
+
+    <!-- ── Node / edge post panel ──────────────────────────────────────────── -->
+    <div class="net-post-overlay" id="net-post-overlay"></div>
+    <aside class="net-post-panel" id="net-post-panel" aria-label="Account posts">
+      <div class="net-post-header">
+        <div>
+          <div class="net-post-title" id="net-post-title"></div>
+          <div class="net-post-subtitle" id="net-post-subtitle"></div>
+        </div>
+        <button class="detail-close" id="net-post-close" aria-label="Close">&#x2715;</button>
+      </div>
+      <div class="net-tab-bar">
+        <button class="net-tab-btn is-active" data-tab="relevant" id="net-tab-btn-relevant">Co-sharing posts</button>
+        <button class="net-tab-btn" data-tab="all" id="net-tab-btn-all">All posts</button>
+      </div>
+      <div class="net-post-body">
+        <div id="net-tab-relevant-content"></div>
+        <div id="net-tab-all-content" hidden></div>
+      </div>
+    </aside>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <img src="favicon.svg" class="logo-mark" alt="" aria-hidden="true" width="24" height="24" />
+          <span><span class="logo-prefix">Agenda</span><span class="logo-suffix">Z</span></span>
+        </div>
+        <div class="footer-links">
+          <a href="index.html">Home</a>
+          <a href="data-explorer.html">Data Explorer</a>
+          <a href="networks.html">Networks</a>
+        <a href="communities.html">Communities</a>
+        <a href="proselytism.html">Proselytism</a>
+        <a href="narrative-conflation.html">Narrative Conflation</a>
+        <a href="latent-dynamics.html">Latent Dynamics</a>
+        <a href="information.html">Information</a>
+        </div>
+        <div class="footer-copy">© <span id="year"></span> AgendaZ · poltextLAB</div>
+      </div>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+    (function () {
+      'use strict';
+
+      // ── D3 colour palette (20 distinct colours) ────────────────────────────
+      const PALETTE = d3.schemeTableau10.concat(d3.schemeDark2).concat(d3.schemeSet2);
+
+      function clusterColor(clusterId) {
+        return PALETTE[clusterId % PALETTE.length];
+      }
+
+      // ── Migration topic label map ──────────────────────────────────────────
+      const MIGRATION_LABELS = {
+        901: 'Culture under attack',
+        902: 'Economic burden',
+        903: 'Illegals and fraudsters',
+        904: 'Extradition necessity',
+        905: 'Nation state should decide',
+        906: 'Administrative burden',
+        907: 'General system failure',
+        908: 'Security threat',
+        909: 'Criminals',
+        910: 'Welfare state overload',
+      };
+
+      // ── Topic metadata ─────────────────────────────────────────────────────
+      const TOPIC_META = {
+        eu_elections: {
+          label: 'EU Elections',
+          desc: 'Co-sharing network among accounts that posted about EU elections. Accounts ' +
+                'connected by an edge shared the same content within a 60-second time window. ' +
+                'Edge weight reflects the number of such co-sharing events.',
+        },
+        lgbtq: {
+          label: 'LGBTQ',
+          desc: 'Co-sharing network for LGBTQ-related posts. Communities of colour reveal ' +
+                'clusters of accounts that systematically amplify the same content.',
+        },
+        ukrainian_war: {
+          label: 'Ukrainian War',
+          desc: 'Co-sharing network for Ukrainian war posts. Node size reflects degree (number ' +
+                'of co-sharing partners); edges grow in opacity with cumulative shared events.',
+        },
+        migration: {
+          label: 'Migration',
+          desc: 'Co-sharing network for migration-related posts. Communities of colour reveal ' +
+                'clusters of accounts that systematically amplify the same content about ' +
+                'migration, refugees, and related topics.',
+        },
+        inequality: {
+          label: 'Inequality',
+          desc: 'Co-sharing network for inequality-related posts. Communities of colour reveal ' +
+                'clusters of accounts that systematically amplify the same content about ' +
+                'economic and social inequality.',
+        },
+        public_health: {
+          label: 'Public Health',
+          desc: 'Co-sharing network for public health-related posts. Communities of colour reveal ' +
+                'clusters of accounts that systematically amplify the same content about ' +
+                'public health policy, vaccines, and related topics.',
+        },
+        climate: {
+          label: 'Climate Change',
+          desc: 'Co-sharing network for climate change-related posts. Communities of colour reveal ' +
+                'clusters of accounts that systematically amplify the same content about ' +
+                'climate policy, scepticism, and related topics.',
+        },
+        security: {
+          label: 'Security',
+          desc: 'Co-sharing network for security-related posts. Communities of colour reveal ' +
+                'clusters of accounts that systematically amplify the same content about ' +
+                'crime, terrorism, and public security.',
+        },
+        corruption: {
+          label: 'Corruption',
+          desc: 'Co-sharing network for corruption-related posts. Communities of colour reveal ' +
+                'clusters of accounts that systematically amplify the same content about ' +
+                'political corruption, elite capture, and rule of law.',
+        },
+      };
+
+      // ── State ──────────────────────────────────────────────────────────────
+      let currentTopic   = 'eu_elections';
+      let networkData    = null;   // { nodes, edges, frames, stats }
+      let frameIndex     = 0;
+      let playing        = false;
+      let playTimer      = null;
+      let frameInterval  = 400;    // ms per frame
+      let simulation     = null;
+      const netPostsCache = {};    // topic → { edges, nodes, posts } (lazily loaded)
+
+      // live edge weights: edgeKey -> { source, target, weight }
+      const edgeState  = new Map();
+      const nodeState  = new Map();   // id -> { degree }
+
+      // ── DOM refs ───────────────────────────────────────────────────────────
+      const loadingEl   = document.getElementById('net-loading');
+      const loadingSubEl= document.getElementById('net-loading-sub');
+      const svgEl       = document.getElementById('net-svg');
+      const gEl         = document.getElementById('net-g');
+      const tooltip     = document.getElementById('net-tooltip');
+      const btnPlay     = document.getElementById('btn-play');
+      const btnRestart  = document.getElementById('btn-restart');
+      const dateInput   = document.getElementById('net-date-input');
+      const timelineRange = document.getElementById('timeline-range');
+      const speedRange  = document.getElementById('speed-range');
+      const statsEl     = document.getElementById('net-stats');
+      const descEl      = document.getElementById('net-desc');
+
+      // ── D3 selections ──────────────────────────────────────────────────────
+      const svg = d3.select(svgEl);
+      const g   = d3.select(gEl);
+
+      let linkG, nodeG, labelG;
+      function initLayers() {
+        g.selectAll('*').remove();
+        linkG  = g.append('g').attr('class', 'links');
+        nodeG  = g.append('g').attr('class', 'nodes');
+        labelG = g.append('g').attr('class', 'labels');
+      }
+      initLayers();
+
+      // Zoom
+      svg.call(
+        d3.zoom()
+          .scaleExtent([0.1, 8])
+          .on('zoom', (event) => g.attr('transform', event.transform))
+      );
+
+      // ── Load network ───────────────────────────────────────────────────────
+      async function loadTopic(topic) {
+        // Clear state
+        stopPlayback();
+        edgeState.clear();
+        nodeState.clear();
+        frameIndex   = 0;
+        networkData  = null;
+        initLayers();
+
+        dateInput.value        = '';
+        timelineRange.value    = 0;
+        timelineRange.max      = 0;
+        statsEl.textContent    = '—';
+        descEl.textContent     = TOPIC_META[topic]?.desc ?? '';
+
+        loadingEl.classList.remove('hidden');
+        loadingSubEl.innerHTML = 'Loading network data&hellip;';
+
+        try {
+          const res  = await fetch(`/network-data/${topic}.json.gz`);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const ds   = new DecompressionStream('gzip');
+          const json = JSON.parse(await new Response(res.body.pipeThrough(ds)).text());
+
+          if (json.error) throw new Error(json.error);
+
+          networkData = json;
+          loadingEl.classList.add('hidden');
+
+          buildStaticGraph(json);
+          renderFrame(-1);    // show all nodes, no edges yet
+
+          const s = json.stats;
+          statsEl.textContent =
+            `${s.nodeCount} nodes · ${s.edgeCount} edges · ${s.frameCount} days`;
+
+          timelineRange.max   = Math.max(0, json.frames.length - 1);
+          timelineRange.value = 0;
+          if (json.frames.length) {
+            dateInput.min = json.frames[0].month;
+            dateInput.max = json.frames[json.frames.length - 1].month;
+          }
+
+          updateInsights(topic, json);
+
+        } catch (err) {
+          insightsEl.hidden = true;
+          loadingSubEl.innerHTML = `<span class="net-error">Error: ${err.message}</span>`;
+        }
+      }
+
+      // ── Build static node set (force layout) ──────────────────────────────
+      let simNodes = [];
+      let simLinks = [];
+
+      function buildStaticGraph(data) {
+        // Initialise node positions (random, then simulation settles)
+        const W = svgEl.clientWidth  || 800;
+        const H = svgEl.clientHeight || 600;
+
+        simNodes = data.nodes.map((n) => ({
+          id:      n.id,
+          cluster: n.cluster,
+          degree:  n.degree,
+          x:       W / 2 + (Math.random() - 0.5) * 200,
+          y:       H / 2 + (Math.random() - 0.5) * 200,
+        }));
+
+        simLinks = data.edges.map((e) => ({
+          source: e.source,
+          target: e.target,
+          weight: e.weight,
+        }));
+
+        // Kick off force simulation (runs briefly to settle positions)
+        if (simulation) simulation.stop();
+
+        simulation = d3.forceSimulation(simNodes)
+          .force('link', d3.forceLink(simLinks)
+            .id((d) => d.id)
+            .distance(80)
+            .strength(0.25))
+          .force('charge', d3.forceManyBody().strength(-130).distanceMax(400))
+          .force('center', d3.forceCenter(W / 2, H / 2))
+          .force('collision', d3.forceCollide().radius((d) => nodeRadius(d.degree) + 3))
+          .alphaDecay(0.03)
+          .on('tick', ticked);
+
+        // Render initial nodes (edges added frame-by-frame)
+        const circles = nodeG.selectAll('circle')
+          .data(simNodes, (d) => d.id)
+          .join('circle')
+          .attr('class', 'node')
+          .attr('r', (d) => nodeRadius(d.degree))
+          .attr('fill', (d) => clusterColor(d.cluster))
+          .on('mouseover', showTooltip)
+          .on('mousemove', moveTooltip)
+          .on('mouseout', hideTooltip)
+          .on('click', (event, d) => {
+            event.stopPropagation();
+            openNodePanel(d.id, d.cluster, d.degree);
+          });
+
+        circles.call(
+          d3.drag()
+            .on('start', (event, d) => {
+              if (!event.active) simulation.alphaTarget(0.3).restart();
+              d.fx = d.x; d.fy = d.y;
+            })
+            .on('drag', (event, d) => { d.fx = event.x; d.fy = event.y; })
+            .on('end', (event, d) => {
+              if (!event.active) simulation.alphaTarget(0);
+              d.fx = null; d.fy = null;
+            })
+        );
+
+        // Labels for the top hub nodes only
+        const degreeThreshold = (() => {
+          const sorted = simNodes.map((n) => n.degree).sort((a, b) => b - a);
+          return sorted[Math.min(40, sorted.length - 1)] || 1;
+        })();
+        labelG.selectAll('text')
+          .data(simNodes.filter((n) => n.degree >= degreeThreshold), (d) => d.id)
+          .join('text')
+          .attr('class', 'label')
+          .attr('dy', (d) => -(nodeRadius(d.degree) + 3))
+          .attr('text-anchor', 'middle')
+          .text((d) => d.id);
+
+        // Let simulation warm up for a few ticks before showing
+        simulation.tick(100);
+        ticked();
+      }
+
+      function nodeRadius(degree) {
+        return Math.min(12, 2 + Math.sqrt(degree || 1) * 1.4);
+      }
+
+      function ticked() {
+        // Update node positions
+        nodeG.selectAll('circle')
+          .attr('cx', (d) => d.x)
+          .attr('cy', (d) => d.y);
+
+        // Update edge positions (only rendered edges)
+        linkG.selectAll('line')
+          .attr('x1', (d) => d.sx)
+          .attr('y1', (d) => d.sy)
+          .attr('x2', (d) => d.tx)
+          .attr('y2', (d) => d.ty);
+
+        // Update label positions
+        labelG.selectAll('text')
+          .attr('x', (d) => d.x)
+          .attr('y', (d) => d.y);
+      }
+
+      // ── Frame rendering ────────────────────────────────────────────────────
+      // Build a position lookup once the simulation has settled
+      function posMap() {
+        const m = new Map();
+        for (const n of simNodes) m.set(n.id, { x: n.x, y: n.y });
+        return m;
+      }
+
+      function renderFrame(idx) {
+        if (!networkData) return;
+        const frames = networkData.frames;
+
+        // Apply frames 0..idx cumulatively (or reset if idx < current)
+        // For animation we apply one frame at a time; for seek we rebuild.
+        if (idx < 0) {
+          // reset — clear all edges
+          edgeState.clear();
+        } else if (idx < frameIndex) {
+          // backwards — rebuild from scratch
+          edgeState.clear();
+          for (let i = 0; i <= idx; i++) applyFrame(frames[i]);
+        } else {
+          for (let i = frameIndex + 1; i <= idx; i++) applyFrame(frames[i]);
+        }
+
+        frameIndex = idx;
+        drawEdges();
+
+        // Update UI
+        const dayStr = idx >= 0 && frames[idx] ? frames[idx].month : '';
+        timelineRange.value = idx >= 0 ? idx : 0;
+        dateInput.value = dayStr;
+      }
+
+      function applyFrame(frame) {
+        // Each entry in frame.new carries a cumulative weight (w), so we can
+        // update edgeState directly without a separate "upd" pass.
+        for (const e of frame.new) {
+          const key = e.sf + '|' + e.tf;
+          edgeState.set(key, { source: e.sf, target: e.tf, weight: e.w });
+        }
+      }
+
+      function drawEdges() {
+        const pm    = posMap();
+        const edges = [...edgeState.values()].filter(
+          (e) => pm.has(e.source) && pm.has(e.target)
+        );
+
+        const maxW = edges.length ? Math.max(...edges.map((e) => e.weight)) : 1;
+
+        // Simplified join — apply attrs to both enter and update in one chain,
+        // and attach click handler for edge-post panel.
+        linkG.selectAll('line')
+          .data(edges, (e) => e.source + '|' + e.target)
+          .join('line')
+          .attr('class', 'link')
+          .attr('x1', (e) => pm.get(e.source).x)
+          .attr('y1', (e) => pm.get(e.source).y)
+          .attr('x2', (e) => pm.get(e.target).x)
+          .attr('y2', (e) => pm.get(e.target).y)
+          .attr('stroke-width', (e) => Math.min(2, Math.max(0.4, Math.sqrt(e.weight) * 0.6)))
+          .attr('stroke-opacity', (e) => 0.08 + (e.weight / maxW) * 0.42)
+          .on('click', (event, d) => {
+            event.stopPropagation();
+            openEdgePanel(d.source, d.target, d.weight);
+          });
+
+        // Also store positions on the edge objects for tick updates
+        for (const e of edges) {
+          const s = pm.get(e.source);
+          const t = pm.get(e.target);
+          e.sx = s.x; e.sy = s.y; e.tx = t.x; e.ty = t.y;
+        }
+      }
+
+      // ── Playback ───────────────────────────────────────────────────────────
+      function startPlayback() {
+        if (!networkData || playing) return;
+        playing = true;
+        btnPlay.textContent = '⏸ Pause';
+        btnPlay.classList.add('is-active');
+
+        function tick() {
+          if (!playing) return;
+          if (frameIndex >= networkData.frames.length - 1) {
+            stopPlayback();
+            return;
+          }
+          renderFrame(frameIndex + 1);
+          playTimer = setTimeout(tick, frameInterval);
+        }
+        tick();
+      }
+
+      function stopPlayback() {
+        playing = false;
+        clearTimeout(playTimer);
+        btnPlay.textContent = '▶ Play';
+        btnPlay.classList.remove('is-active');
+      }
+
+      btnPlay.addEventListener('click', () => {
+        if (playing) stopPlayback();
+        else {
+          if (networkData && frameIndex >= networkData.frames.length - 1) {
+            // restart from beginning
+            renderFrame(-1);
+          }
+          startPlayback();
+        }
+      });
+
+      btnRestart.addEventListener('click', () => {
+        stopPlayback();
+        if (networkData) renderFrame(-1);
+      });
+
+      speedRange.addEventListener('input', () => {
+        // Range: 50ms (fastest) → 1000ms (slowest) — invert so right = faster
+        frameInterval = 1050 - parseInt(speedRange.value, 10);
+      });
+      frameInterval = 1050 - parseInt(speedRange.value, 10);
+
+      // ── Timeline range drag ────────────────────────────────────────────────
+      timelineRange.addEventListener('input', () => {
+        if (!networkData) return;
+        stopPlayback();
+        renderFrame(parseInt(timelineRange.value, 10));
+      });
+
+      // ── Date input → seek ─────────────────────────────────────────────────
+      dateInput.addEventListener('change', () => {
+        if (!networkData) return;
+        const target = dateInput.value;  // "YYYY-MM-DD"
+        if (!target) return;
+        stopPlayback();
+        const frames = networkData.frames;
+        // Find the last frame whose month <= target
+        let best = 0;
+        for (let i = 0; i < frames.length; i++) {
+          if (frames[i].month <= target) best = i;
+          else break;
+        }
+        renderFrame(best);
+      });
+
+      // ── Tooltip ────────────────────────────────────────────────────────────
+      function showTooltip(event, d) {
+        tooltip.style.display = 'block';
+        tooltip.innerHTML =
+          `<strong>${d.id}</strong><br/>` +
+          `Cluster: ${d.cluster}<br/>` +
+          `Degree: ${d.degree}`;
+        moveTooltip(event);
+      }
+
+      function moveTooltip(event) {
+        const rect  = svgEl.getBoundingClientRect();
+        const left  = event.clientX - rect.left + 12;
+        const top   = event.clientY - rect.top  - 10;
+        tooltip.style.left = left + 'px';
+        tooltip.style.top  = top  + 'px';
+      }
+
+      function hideTooltip() { tooltip.style.display = 'none'; }
+
+      // ── Node / edge post panel ─────────────────────────────────────────────
+
+      const netPostOverlay  = document.getElementById('net-post-overlay');
+      const netPostPanel    = document.getElementById('net-post-panel');
+      const netPostTitleEl  = document.getElementById('net-post-title');
+      const netPostSubEl    = document.getElementById('net-post-subtitle');
+      const netPostClose    = document.getElementById('net-post-close');
+      const netTabBtnRel    = document.getElementById('net-tab-btn-relevant');
+      const netTabBtnAll    = document.getElementById('net-tab-btn-all');
+      const netTabRelDiv    = document.getElementById('net-tab-relevant-content');
+      const netTabAllDiv    = document.getElementById('net-tab-all-content');
+
+      function openNetPanel()  {
+        netPostOverlay.classList.add('is-open');
+        netPostPanel.classList.add('is-open');
+      }
+      function closeNetPanel() {
+        netPostOverlay.classList.remove('is-open');
+        netPostPanel.classList.remove('is-open');
+      }
+      netPostClose.addEventListener('click', closeNetPanel);
+      netPostOverlay.addEventListener('click', closeNetPanel);
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeNetPanel(); });
+
+      function activateTab(name) {
+        netTabBtnRel.classList.toggle('is-active', name === 'relevant');
+        netTabBtnAll.classList.toggle('is-active', name === 'all');
+        netTabRelDiv.hidden = (name !== 'relevant');
+        netTabAllDiv.hidden = (name !== 'all');
+      }
+      netTabBtnRel.addEventListener('click', () => activateTab('relevant'));
+      netTabBtnAll.addEventListener('click', () => activateTab('all'));
+
+      async function ensureNetPosts(topic) {
+        if (topic in netPostsCache) return netPostsCache[topic];
+        const url = `/api-data/net-posts/${topic}.json.gz`;
+        try {
+          const res = await fetch(url);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const ds = new DecompressionStream('gzip');
+          netPostsCache[topic] = JSON.parse(await new Response(res.body.pipeThrough(ds)).text());
+        } catch (err) {
+          netPostsCache[topic] = null;
+        }
+        return netPostsCache[topic];
+      }
+
+      // ── Insights panel ──────────────────────────────────────────────────────
+
+      const insightsEl = document.getElementById('net-insights');
+      const niPeakEl   = document.getElementById('ni-peak');
+      const niTimeEl   = document.getElementById('ni-time');
+      const niLblEl    = document.getElementById('ni-labels');
+
+      function renderInsightsPeak(frames) {
+        // Group co-sharing event counts (sum of d) by YYYY-MM month
+        const byMonth = {};
+        for (const f of frames) {
+          if (!f.new || !f.new.length) continue;
+          const mo = (f.month || '').slice(0, 7);
+          if (!mo) continue;
+          for (const e of f.new) {
+            byMonth[mo] = (byMonth[mo] || 0) + (parseInt(e.d, 10) || 0);
+          }
+        }
+        const sorted = Object.entries(byMonth).sort((a, b) => b[1] - a[1]);
+        const top    = sorted.slice(0, 8);
+        if (!top.length) { niPeakEl.innerHTML = '<div class="ni-card-title">Peak activity</div><p class="ni-loading">No data.</p>'; return; }
+        const maxVal = top[0][1];
+        const peakMo = top[0][0];
+        let html = '<div class="ni-card-title">Peak months (co-sharing events)</div>';
+        for (const [mo, cnt] of top) {
+          const pct    = (cnt / maxVal * 100).toFixed(1);
+          const isPeak = mo === peakMo ? ' peak' : '';
+          html += `<div class="ni-bar-row">
+            <span class="ni-bar-month">${mo}</span>
+            <div class="ni-bar-track"><div class="ni-bar-fill${isPeak}" style="width:${pct}%"></div></div>
+            <span class="ni-bar-count">${cnt.toLocaleString()}</span>
+          </div>`;
+        }
+        niPeakEl.innerHTML = html;
+      }
+
+      function renderInsightsActivity(frames, gapStats) {
+        // d in each frame entry = count of co-sharing events added on that day for that edge
+        let totalEvents  = 0;
+        let activeDays   = 0;
+        let peakDay      = null;
+        let peakCount    = 0;
+        const wVals      = [];   // final cumulative weights per edge
+        const lastW      = {};   // track latest w per edge key
+
+        for (const f of frames) {
+          if (!f.new || !f.new.length) continue;
+          let dayEvents = 0;
+          for (const e of f.new) {
+            const d = parseInt(e.d, 10) || 0;
+            totalEvents += d;
+            dayEvents   += d;
+            lastW[`${e.sf}|${e.tf}`] = e.w;
+          }
+          activeDays++;
+          if (dayEvents > peakCount) { peakCount = dayEvents; peakDay = f.month; }
+        }
+
+        for (const w of Object.values(lastW)) wVals.push(w);
+        wVals.sort((a, b) => a - b);
+        const wn  = wVals.length;
+        const wMed = wn ? (wn % 2 === 0 ? (wVals[wn/2-1] + wVals[wn/2]) / 2 : wVals[Math.floor(wn/2)]) : 0;
+        const wMean = wn ? wVals.reduce((s, v) => s + v, 0) / wn : 0;
+
+        const meanGapRow = gapStats && gapStats.mean_gap_min != null
+          ? `<div class="ni-stat-row"><span class="ni-stat-label">Mean share gap</span><span class="ni-stat-val">${gapStats.mean_gap_min.toFixed(1)} min</span></div>`
+          : `<div class="ni-stat-row"><span class="ni-stat-label">Mean share gap</span><span class="ni-stat-val ni-loading-inline">loading…</span></div>`;
+        niTimeEl.innerHTML = `<div class="ni-card-title">Co-sharing activity</div>
+          <div class="ni-stat-row"><span class="ni-stat-label">Detection window</span><span class="ni-stat-val">60 min</span></div>
+          ${meanGapRow}
+          <div class="ni-stat-row"><span class="ni-stat-label">Total events</span><span class="ni-stat-val">${totalEvents.toLocaleString()}</span></div>
+          <div class="ni-stat-row"><span class="ni-stat-label">Active days</span><span class="ni-stat-val">${activeDays.toLocaleString()}</span></div>
+          <div class="ni-stat-row"><span class="ni-stat-label">Peak day</span><span class="ni-stat-val">${peakDay ?? '—'}</span></div>
+          <div class="ni-stat-row"><span class="ni-stat-label">Peak day events</span><span class="ni-stat-val">${peakCount.toLocaleString()}</span></div>
+          <div class="ni-stat-row"><span class="ni-stat-label">Median edge weight</span><span class="ni-stat-val">${wMed.toFixed(1)} events</span></div>
+          <div class="ni-stat-row"><span class="ni-stat-label">Mean edge weight</span><span class="ni-stat-val">${wMean.toFixed(1)} events</span></div>`;
+      }
+
+      const EU_ELECTION_RAW = new Set([
+        "EU institutions are illegitimate and corrupt.",
+        "EU/European national and local elections are rigged or invalid.",
+        "EU institutions and Western democracies are inefficient compared to authoritarian regimes.",
+        "EU institutions and Western democracies are inefficient compared to authoritarian or illiberal regimes.",
+        "Immigrants are seizing power in the EU/immigration has negative economic/social/cultural/security consequences.",
+        "Immigrants are seizing power in the EU, which has negative economic, social, cultural or security consequences.",
+        "The EU is a neocolonial project oppressing developing and emerging countries.",
+        "The EU is a neocolonial project oppressing least developed, low-income or Global South nations and economies",
+        "The EU poses a risk to the sovereignty of European nations by challenging their political and national autonomy.",
+        "The EU poses a risk to the sovereignty of its Member States, European nations and neighbouring countries by challenging their economic, political, security and national autonomy.",
+        "The EU's environmental policies and green agenda are inefficient and pointless, with negative consequences for the domestic economy, society, and public health.",
+        "The EU's environmental policies and green agenda are inefficient and have negative consequences for domestic economies, societies, public health and security.",
+      ]);
+
+      const EU_LABEL_MERGE = {
+        "EU institutions are illegitimate and corrupt.": "Illegitimate and corrupt EU institutions",
+        "The EU poses a risk to the sovereignty of European nations by challenging their political and national autonomy.": "Threat to national sovereignty",
+        "The EU poses a risk to the sovereignty of its Member States, European nations and neighbouring countries by challenging their economic, political, security and national autonomy.": "Threat to national sovereignty",
+        "EU/European national and local elections are rigged or invalid.": "Rigged or invalid EU/European national and local elections",
+        "Immigrants are seizing power in the EU/immigration has negative economic/social/cultural/security consequences.": "Immigrant policies with harmful consequences",
+        "Immigrants are seizing power in the EU, which has negative economic, social, cultural or security consequences.": "Immigrant policies with harmful consequences",
+        "The EU's environmental policies and green agenda are inefficient and pointless, with negative consequences for the domestic economy, society, and public health.": "Unefficient and harmful environmental policies and green agenda",
+        "The EU's environmental policies and green agenda are inefficient and have negative consequences for domestic economies, societies, public health and security.": "Unefficient and harmful environmental policies and green agenda",
+        "The EU is a neocolonial project oppressing developing and emerging countries.": "Neocolonialism and oppression of developing and emerging countries",
+        "The EU is a neocolonial project oppressing least developed, low-income or Global South nations and economies": "Neocolonialism and oppression of developing and emerging countries",
+        "EU institutions and Western democracies are inefficient compared to authoritarian regimes.": "Inefficient system compared to authoritarian regimes",
+        "EU institutions and Western democracies are inefficient compared to authoritarian or illiberal regimes.": "Inefficient system compared to authoritarian regimes",
+      };
+
+      function topicLabel(topic, post) {
+        const skip = new Set(['None of them', 'None of Them', 'none of them']);
+        if (topic === 'lgbtq') {
+          const v = post.LMBTQ_major_1;
+          return (v && !skip.has(v)) ? v : null;
+        }
+        if (topic === 'ukrainian_war') {
+          const v = post.Ukrain_war_major_1;
+          return (v && !skip.has(v)) ? v : null;
+        }
+        if (topic === 'eu_elections') {
+          const v = post.Embedding_label_1;
+          if (!v || !EU_ELECTION_RAW.has(v)) return null;
+          return EU_LABEL_MERGE[v] ?? v;
+        }
+        if (topic === 'migration') {
+          const code = post.pred != null ? parseInt(post.pred, 10) : null;
+          return code && MIGRATION_LABELS[code] ? MIGRATION_LABELS[code] : null;
+        }
+        // inequality, public_health, climate, security, corruption use pred as string label
+        // guard: skip numeric pred values (those are migration codes that leaked in via parquet read order)
+        const v = post.pred;
+        if (!v || skip.has(v) || /^\d+$/.test(String(v))) return null;
+        return v;
+      }
+
+      function renderInsightsLabels(topic, npData) {
+        const cardTitle = 'Dominant topic labels';
+        if (!npData) { niLblEl.innerHTML = `<div class="ni-card-title">${cardTitle}</div><p class="ni-loading">Data not available.</p>`; return; }
+        const counts = {};
+        for (const post of Object.values(npData.posts || {})) {
+          const lbl = topicLabel(topic, post);
+          if (lbl) counts[lbl] = (counts[lbl] || 0) + 1;
+        }
+        const top = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 8);
+        if (!top.length) { niLblEl.innerHTML = `<div class="ni-card-title">${cardTitle}</div><p class="ni-loading">No label data.</p>`; return; }
+        let html = `<div class="ni-card-title">${cardTitle} (top ${top.length})</div><div class="ni-lbl-list">`;
+        top.forEach(([lbl, cnt], i) => {
+          html += `<div class="ni-lbl-row">
+            <span class="ni-lbl-rank">${i+1}.</span>
+            <span class="ni-lbl-text">${lbl}</span>
+            <span class="ni-lbl-count">${cnt}</span>
+          </div>`;
+        });
+        html += '</div>';
+        niLblEl.innerHTML = html;
+      }
+
+      async function updateInsights(topic, netData) {
+        if (!netData || !netData.frames) { insightsEl.hidden = true; return; }
+        insightsEl.hidden = false;
+        renderInsightsPeak(netData.frames);
+        renderInsightsActivity(netData.frames, null);
+        niLblEl.innerHTML = '<div class="ni-card-title">Dominant topic labels</div><p class="ni-loading">Loading…</p>';
+        const npData = await ensureNetPosts(topic);
+        renderInsightsActivity(netData.frames, npData ? (npData.stats || null) : null);
+        renderInsightsLabels(topic, npData);
+      }
+
+      function infoBar(html) {
+        return `<div class="np-info-bar">${html}</div>`;
+      }
+
+      function netEsc(s) {
+        const d = document.createElement('div');
+        d.textContent = s ?? '';
+        return d.innerHTML;
+      }
+      function netTrunc(s, n) { return s && s.length > n ? s.slice(0, n) + '…' : (s || ''); }
+
+      function renderPostCards(posts) {
+        if (!posts || posts.length === 0) return '';
+        return posts.map((r) => {
+          const narrative  = r.Embedding_label_1;
+          const lgbtq      = r.LMBTQ_major_1     !== 'None of them' ? r.LMBTQ_major_1     : null;
+          const ukraine    = r.Ukrain_war_major_1 !== 'None of them' ? r.Ukrain_war_major_1 : null;
+          const migration  = r.pred != null ? r.pred : null;
+          const inequality = r.inequality_pred ? r.inequality_pred : null;
+          const publicHealth = r.public_health_pred ? r.public_health_pred : null;
+          const climate = r.climate_pred ? r.climate_pred : null;
+          const security = r.security_pred ? r.security_pred : null;
+          const corruption = r.corruption_pred ? r.corruption_pred : null;
+          return `
+            <div class="np-card">
+              <div class="np-meta">
+                <span class="badge platform">${netEsc(r.platform || '')}</span>
+                <span class="np-date">${netEsc(r.date || '—')}</span>
+                ${r.post_owner_username ? `<span class="np-user">@${netEsc(r.post_owner_username)}</span>` : ''}
+                ${!r.post_owner_username && r.post_owner_name ? `<span class="np-user">${netEsc(r.post_owner_name)}</span>` : ''}
+                ${!r.post_owner_username && !r.post_owner_name && r.account_name ? `<span class="np-user">${netEsc(r.account_name)}</span>` : ''}
+              </div>
+              ${r.text ? `<p class="np-text">${netEsc(netTrunc(r.text, 350))}</p>` : ''}
+              <div class="np-labels">
+                ${narrative  ? `<span class="np-lbl">${netEsc(netTrunc(narrative, 55))}</span>` : ''}
+                ${lgbtq      ? `<span class="np-lbl lgbtq">LGBTQ: ${netEsc(netTrunc(lgbtq, 40))}</span>` : ''}
+                ${ukraine    ? `<span class="np-lbl ukraine">Ukraine: ${netEsc(netTrunc(ukraine, 40))}</span>` : ''}
+                ${migration  ? `<span class="np-lbl migration">Migration: ${netEsc(MIGRATION_LABELS[migration] ?? String(migration))}</span>` : ''}
+                ${inequality ? `<span class="np-lbl inequality">Inequality: ${netEsc(netTrunc(inequality, 40))}</span>` : ''}
+                ${publicHealth ? `<span class="np-lbl public_health">Public Health: ${netEsc(netTrunc(publicHealth, 40))}</span>` : ''}
+                ${climate ? `<span class="np-lbl climate">Climate: ${netEsc(netTrunc(climate, 40))}</span>` : ''}
+                ${security ? `<span class="np-lbl security">Security: ${netEsc(netTrunc(security, 40))}</span>` : ''}
+                ${corruption ? `<span class="np-lbl corruption">Corruption: ${netEsc(netTrunc(corruption, 40))}</span>` : ''}
+              </div>
+            </div>`;
+        }).join('');
+      }
+
+      async function fetchAccountPosts(accountId) {
+        // 1. Pre-computed static file (Vercel + local)
+        try {
+          const res = await fetch(`/api-data/account/${encodeURIComponent(accountId)}.json`);
+          if (res.ok) {
+            const d = await res.json();
+            return { data: d.data ?? [], total: d.total ?? 0 };
+          }
+        } catch (_) {}
+        // 2. Live API (local dev fallback)
+        try {
+          const res = await fetch(`/api/data?accountId=${encodeURIComponent(accountId)}&pageSize=20`);
+          if (res.ok) {
+            const d = await res.json();
+            return { data: d.data ?? [], total: d.total ?? 0 };
+          }
+        } catch (_) {}
+        return { data: [], total: 0 };
+      }
+
+      async function openNodePanel(nodeId, cluster, degree) {
+        netPostTitleEl.textContent = nodeId;
+        netPostSubEl.textContent   = `cluster ${cluster} · degree ${degree}`;
+        netTabBtnRel.textContent = 'Network posts';
+        netTabBtnAll.textContent = 'All posts';
+        activateTab('relevant');
+        openNetPanel();
+
+        const spinner = '<div class="table-placeholder"><div class="spinner"></div>Loading…</div>';
+        netTabRelDiv.innerHTML = spinner;
+        netTabAllDiv.innerHTML = spinner;
+
+        // Load co-sharing post index (lazy, cached) and account posts in parallel
+        const [npData, accountResult] = await Promise.all([
+          ensureNetPosts(currentTopic),
+          fetchAccountPosts(nodeId),
+        ]);
+        const { data, total } = accountResult;
+
+        // ── Tab 1: network posts (posts involved in co-sharing events) ──
+        const pids   = npData?.nodes?.[nodeId] ?? [];
+        const nPosts = pids.map(pid => npData?.posts?.[pid]).filter(Boolean);
+        netTabRelDiv.innerHTML = nPosts.length > 0
+          ? infoBar(`${nPosts.length} post${nPosts.length !== 1 ? 's' : ''} from this account involved in co-sharing events`)
+            + renderPostCards(nPosts)
+          : '<div class="np-empty">No co-sharing data found for this account.</div>';
+
+        // ── Tab 2: all posts from this account ──────────────────────────
+        const shown = data.length;
+        netTabAllDiv.innerHTML =
+          infoBar(total > 0
+            ? `showing ${shown} of ${total.toLocaleString()} posts in dataset`
+            : 'no posts found for this account in the dataset')
+          + (shown > 0
+            ? renderPostCards(data)
+            : '<div class="np-empty">No posts found. This account may not appear in the main dataset.</div>');
+
+        // Auto-switch to All posts if co-sharing tab has nothing
+        if (nPosts.length === 0 && total > 0) activateTab('all');
+      }
+
+      async function openEdgePanel(source, target, weight) {
+        netPostTitleEl.textContent = source;
+        netPostSubEl.textContent   = `↔ ${target} · ${weight} co-shared event${weight !== 1 ? 's' : ''}`;
+        netTabBtnRel.textContent = 'Co-sharing posts';
+        netTabBtnAll.textContent = 'Account posts';
+        activateTab('relevant');
+        openNetPanel();
+
+        const spinner = '<div class="table-placeholder"><div class="spinner"></div>Loading…</div>';
+        netTabRelDiv.innerHTML = spinner;
+        netTabAllDiv.innerHTML = spinner;
+
+        const edgeKey = [source, target].sort().join('|');
+
+        // Load co-sharing index and both account post lists in parallel
+        const [npData, srcResult, tgtResult] = await Promise.all([
+          ensureNetPosts(currentTopic),
+          fetchAccountPosts(source),
+          fetchAccountPosts(target),
+        ]);
+
+        // ── Tab 1: co-sharing posts (the posts that created this edge) ──
+        const pids   = npData?.edges?.[edgeKey] ?? [];
+        const ePosts = pids.map(pid => npData?.posts?.[pid]).filter(Boolean);
+        netTabRelDiv.innerHTML = ePosts.length > 0
+          ? infoBar(`${ePosts.length} post${ePosts.length !== 1 ? 's' : ''} — the shared content that created this connection`)
+            + renderPostCards(ePosts)
+          : '<div class="np-empty">No co-sharing data found for this connection.</div>';
+
+        // ── Tab 2: all posts from both accounts ─────────────────────────
+        let html = '';
+        if (srcResult.total > 0 || srcResult.data.length > 0) {
+          html += `<div class="np-account-sep">${netEsc(source)}`
+               + (srcResult.total ? ` · ${srcResult.total.toLocaleString()} posts` : '') + `</div>`;
+          html += renderPostCards(srcResult.data.slice(0, 10));
+        }
+        if (tgtResult.total > 0 || tgtResult.data.length > 0) {
+          html += `<div class="np-account-sep" style="margin-top:10px">${netEsc(target)}`
+               + (tgtResult.total ? ` · ${tgtResult.total.toLocaleString()} posts` : '') + `</div>`;
+          html += renderPostCards(tgtResult.data.slice(0, 10));
+        }
+        netTabAllDiv.innerHTML = html || '<div class="np-empty">No posts found for either account in the dataset.</div>';
+
+        // Auto-switch to Account posts if co-sharing tab has nothing
+        if (ePosts.length === 0 && html) activateTab('all');
+      }
+
+      // ── Tab switching ──────────────────────────────────────────────────────
+      document.querySelectorAll('.network-tab').forEach((tab) => {
+        tab.addEventListener('click', () => {
+          document.querySelectorAll('.network-tab').forEach((t) => {
+            t.classList.remove('is-active');
+            t.setAttribute('aria-selected', 'false');
+          });
+          tab.classList.add('is-active');
+          tab.setAttribute('aria-selected', 'true');
+
+          currentTopic = tab.dataset.topic;
+          loadTopic(currentTopic);
+        });
+      });
+
+      // ── Init ───────────────────────────────────────────────────────────────
+      loadTopic('eu_elections');
+    })();
+    </script>
+  </body>
+</html>

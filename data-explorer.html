@@ -1,0 +1,876 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Data Explorer — AgendaZ</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <meta name="theme-color" content="#f8f3e9" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+      <script src="spine-config.js"></script>
+    <script src="spine-data.js"></script>
+  </head>
+  <body>
+    <header class="nav">
+      <a href="index.html" class="logo" aria-label="AgendaZ home">
+        <img src="favicon.svg" class="logo-mark" alt="" aria-hidden="true" width="30" height="30" />
+        <span class="logo-text"><span class="logo-prefix">Agenda</span><span class="logo-suffix">Z</span></span>
+      </a>
+      <nav class="nav-links" aria-label="Main">
+        <a href="index.html">Home</a>
+        <a href="data-explorer.html">Data Explorer</a>
+        <a href="statistics.html">Statistics</a>
+        <a href="networks.html">Networks</a>
+        <a href="communities.html">Communities</a>
+        <a href="proselytism.html">Proselytism</a>
+        <a href="narrative-conflation.html">Narrative Conflation</a>
+        <a href="latent-dynamics.html">Latent Dynamics</a>
+        <a href="information.html">Information</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="page-hero">
+        <div class="page-hero-bg network" aria-hidden="true"></div>
+        <div class="page-hero-content">
+          <span class="section-label">Dataset</span>
+          <h1>Data <span class="gradient-text">Explorer</span></h1>
+          <p class="lead">
+            Browse ~2.3 million social media posts filtered by platform, narrative label,
+            or keyword. Click any row to see all 42 variables.
+          </p>
+        </div>
+      </section>
+
+      <section class="body-section">
+        <div class="container">
+
+          <!-- Filter bar -->
+          <div class="filter-bar">
+            <select id="sel-platform" class="filter-select" aria-label="Filter by platform">
+              <option value="">All platforms</option>
+            </select>
+            <select id="sel-proselytism" class="filter-select" aria-label="Filter by proselytism label">
+              <option value="">All proselytism labels</option>
+            </select>
+            <select id="sel-corruption" class="filter-select" aria-label="Filter by corruption topic">
+              <option value="">All corruption topics</option>
+            </select>
+            <select id="sel-lgbtq" class="filter-select" aria-label="Filter by LGBTQ topic">
+              <option value="">All LGBTQ topics</option>
+            </select>
+            <select id="sel-ukraine" class="filter-select" aria-label="Filter by Ukraine War topic">
+              <option value="">All Ukraine War topics</option>
+            </select>
+            <select id="sel-migration" class="filter-select" aria-label="Filter by migration topic">
+              <option value="">All migration topics</option>
+            </select>
+            <select id="sel-inequality" class="filter-select" aria-label="Filter by inequality topic">
+              <option value="">All inequality topics</option>
+            </select>
+            <select id="sel-public-health" class="filter-select" aria-label="Filter by public health topic">
+              <option value="">All public health topics</option>
+            </select>
+            <select id="sel-climate" class="filter-select" aria-label="Filter by climate topic">
+              <option value="">All climate topics</option>
+            </select>
+            <select id="sel-security" class="filter-select" aria-label="Filter by security topic">
+              <option value="">All security topics</option>
+            </select>
+            <select id="sel-eu-election" class="filter-select" aria-label="Filter by EU Elections topic">
+              <option value="">All EU Elections topics</option>
+            </select>
+            <select id="sel-narrative" class="filter-select" aria-label="Filter by narrative label">
+              <option value="">All narrative labels</option>
+            </select>
+            <input id="inp-search" class="filter-input" type="search"
+              placeholder="Search text or username…" aria-label="Search posts" />
+            <button id="btn-reset" class="filter-reset" type="button">Reset</button>
+            <div class="result-count" id="result-count"></div>
+          </div>
+
+          <!-- Table -->
+          <div class="data-table-wrap">
+            <table class="data-table" id="data-table">
+              <thead>
+                <tr>
+                  <th>Platform</th>
+                  <th>Date</th>
+                  <th>Username</th>
+                  <th>Text</th>
+                  <th>Narrative Label</th>
+                  <th>LGBTQ Topic</th>
+                  <th>Ukraine War Topic</th>
+              <th>EU Elections Topic</th>
+                  <th>Migration Topic</th>
+                  <th>Inequality Topic</th>
+                  <th>Public Health Topic</th>
+                  <th>Climate Topic</th>
+                  <th>Security Topic</th>
+                  <th>Corruption Topic</th>
+                  <th>Proselytism Label</th>
+                  <th>Unique ID</th>
+                </tr>
+              </thead>
+              <tbody id="table-body">
+                <tr>
+                  <td colspan="16">
+                    <div class="table-placeholder">
+                      <div class="spinner"></div>
+                      Loading data…
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination -->
+          <div class="pagination" id="pagination" aria-label="Pagination"></div>
+
+        </div>
+      </section>
+    </main>
+
+    <!-- Detail panel -->
+    <div class="detail-overlay" id="detail-overlay" role="presentation"></div>
+    <aside class="detail-panel" id="detail-panel" aria-label="Post details">
+      <div class="detail-header">
+        <h3>Post details</h3>
+        <button class="detail-close" id="detail-close" aria-label="Close">&#x2715;</button>
+      </div>
+      <div class="detail-content" id="detail-content"></div>
+    </aside>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <img src="favicon.svg" class="logo-mark" alt="" aria-hidden="true" width="24" height="24" />
+          <span><span class="logo-prefix">Agenda</span><span class="logo-suffix">Z</span></span>
+        </div>
+        <div class="footer-links">
+          <a href="index.html">Home</a>
+          <a href="data-explorer.html">Data Explorer</a>
+          <a href="networks.html">Networks</a>
+        <a href="communities.html">Communities</a>
+        <a href="proselytism.html">Proselytism</a>
+        <a href="narrative-conflation.html">Narrative Conflation</a>
+        <a href="latent-dynamics.html">Latent Dynamics</a>
+        <a href="information.html">Information</a>
+        </div>
+        <div class="footer-copy">© <span id="year"></span> AgendaZ · poltextLAB</div>
+      </div>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+    (async function () {
+      'use strict';
+
+      // ── Column label map ────────────────────────────────────────────────────
+      const LABELS = {
+        unique_id:              'Unique ID',
+        post_id:                'Post ID',
+        content_id:             'Content ID',
+        global_post_key:        'Global Post Key',
+        date:                   'Date',
+        text:                   'Text',
+        timestamp:              'Timestamp',
+        post_created_at:        'Post Created At',
+        platform:               'Platform',
+        author_name:            'Author Name',
+        post_owner_id:          'Post Owner ID',
+        post_owner_username:    'Post Owner Username',
+        post_owner_name:        'Post Owner Name',
+        post_owner_type:        'Post Owner Type',
+        hashtags:               'Hashtags',
+        hashtag_names:          'Hashtag Names',
+        account_id:             'Account ID',
+        pf_account_id:          'PF Account ID',
+        account_name:           'Account Name',
+        account_registered_at:  'Account Registered At',
+        link_attachment_link:   'Link Attachment Link',
+        link_attachment_name:   'Link Attachment Name',
+        title:                  'Title',
+        keywords:               'Keywords',
+        post_url:               'Post URL',
+        LMBTQ_major_1:          'LGBTQ First Major Topic Prediction',
+        LMBTQ_major_1_code:     'LGBTQ First Major Topic Code',
+        Ukrain_war_major_1:     'Ukrainian War First Major Topic Prediction',
+        Ukrain_war_major_1_code:'Ukrainian War First Major Topic Code',
+        pred:                   'Migration Topic',
+        inequality_pred:        'Inequality Topic',
+        public_health_pred:     'Public Health Topic',
+        climate_pred:           'Climate Topic',
+        security_pred:          'Security Topic',
+        corruption_pred:        'Corruption Topic',
+        Embedding_label_1:      'Document Narrative Label',
+        Embedding_label_1_code: 'Document Narrative Illframes Code',
+        Embedding_label_2:      'Document Narrative Label 2',
+        Embedding_label_2_code: 'Document Narrative Illframes Code 2',
+        proselytism_label:      'Proselytism Label',
+      };
+
+      // Column display order in the detail panel
+      const DETAIL_ORDER = [
+        'unique_id','post_id','content_id','global_post_key',
+        'date','timestamp','post_created_at',
+        'platform','author_name',
+        'post_owner_id','post_owner_username','post_owner_name','post_owner_type',
+        'text',
+        'hashtags','hashtag_names',
+        'account_id','pf_account_id','account_name','account_registered_at',
+        'link_attachment_link','link_attachment_name','title','keywords','post_url',
+        'LMBTQ_major_1','LMBTQ_major_1_code',
+        'Ukrain_war_major_1','Ukrain_war_major_1_code',
+        'pred',
+        'inequality_pred',
+        'public_health_pred',
+        'climate_pred',
+        'security_pred',
+        'corruption_pred',
+        'Embedding_label_1','Embedding_label_1_code',
+        'Embedding_label_2','Embedding_label_2_code',
+        'proselytism_label',
+      ];
+
+      // ── Static-file mode (set once filters.json is confirmed reachable) ──────
+      // When public/api-data/ files are deployed (Vercel), the browser fetches
+      // them directly — no Lambda involved. On local dev the same files exist, so
+      // this path is used there too. Falls back to /api/data only when the files
+      // are absent.
+      let HAS_STATIC                 = false;  // true once /api-data/filters.json returns 200
+      let LABEL_INDEX                = {};     // EU Elections narrative label → numeric file index
+      let LGBTQ_LABEL_INDEX          = {};     // LGBTQ topic label → numeric file index
+      let UKRAINE_LABEL_INDEX        = {};     // Ukraine topic label → numeric file index
+      let INEQUALITY_LABEL_INDEX     = {};     // Inequality topic label → numeric file index
+      let PUBLIC_HEALTH_LABEL_INDEX  = {};     // Public health topic label → numeric file index
+      let CLIMATE_LABEL_INDEX        = {};     // Climate topic label → numeric file index
+      let SECURITY_LABEL_INDEX       = {};     // Security topic label → numeric file index
+      let CORRUPTION_LABEL_INDEX     = {};     // Corruption topic label → numeric file index
+      let PROSELYTISM_LABEL_INDEX    = {};     // Proselytism label → numeric file index
+
+      function staticUrl(page) {
+        // Returns a URL to a pre-computed JSON file, or null if unsupported.
+        const { platform, narrativeLabel, lgbtqLabel, ukraineLabel, migrationCode, inequalityLabel, publicHealthLabel, climateLabel, securityLabel, corruptionLabel, euElectionFilter, proselytismLabel } = state;
+        // Count active filters; static files only cover one at a time
+        const activeCount = [platform, narrativeLabel, lgbtqLabel, ukraineLabel, migrationCode, inequalityLabel, publicHealthLabel, climateLabel, securityLabel, corruptionLabel, euElectionFilter, proselytismLabel].filter(Boolean).length;
+        if (activeCount > 1) return null;
+        let prefix;
+        if (proselytismLabel) {
+          const idx = PROSELYTISM_LABEL_INDEX[proselytismLabel];
+          if (idx === undefined) return null;
+          prefix = `pros.${idx}`;
+        } else if (migrationCode) {
+          prefix = `mig.${migrationCode}`;
+        } else if (lgbtqLabel) {
+          const idx = LGBTQ_LABEL_INDEX[lgbtqLabel];
+          if (idx === undefined) return null;
+          prefix = `lgbtq.${idx}`;
+        } else if (ukraineLabel) {
+          const idx = UKRAINE_LABEL_INDEX[ukraineLabel];
+          if (idx === undefined) return null;
+          prefix = `ukraine.${idx}`;
+        } else if (inequalityLabel) {
+          const idx = INEQUALITY_LABEL_INDEX[inequalityLabel];
+          if (idx === undefined) return null;
+          prefix = `ineq.${idx}`;
+        } else if (publicHealthLabel) {
+          const idx = PUBLIC_HEALTH_LABEL_INDEX[publicHealthLabel];
+          if (idx === undefined) return null;
+          prefix = `ph.${idx}`;
+        } else if (climateLabel) {
+          const idx = CLIMATE_LABEL_INDEX[climateLabel];
+          if (idx === undefined) return null;
+          prefix = `cl.${idx}`;
+        } else if (securityLabel) {
+          const idx = SECURITY_LABEL_INDEX[securityLabel];
+          if (idx === undefined) return null;
+          prefix = `sec.${idx}`;
+        } else if (corruptionLabel) {
+          const idx = CORRUPTION_LABEL_INDEX[corruptionLabel];
+          if (idx === undefined) return null;
+          prefix = `cor.${idx}`;
+        } else if (euElectionFilter) {
+          const idx = LABEL_INDEX[euElectionFilter];
+          if (idx === undefined) return null;
+          prefix = `nl.${idx}`;
+        } else if (narrativeLabel) {
+          const idx = LABEL_INDEX[narrativeLabel];
+          if (idx === undefined) return null;
+          prefix = `nl.${idx}`;
+        } else if (platform) {
+          prefix = `pl.${platform}`;
+        } else {
+          prefix = 'data';
+        }
+        return `/api-data/${prefix}.p${page}.json`;
+      }
+
+      // ── State ────────────────────────────────────────────────────────────────
+      let state = {
+        platform: '',
+        narrativeLabel: '',
+        lgbtqLabel: '',
+        ukraineLabel: '',
+        migrationCode: '',
+        inequalityLabel: '',
+        publicHealthLabel: '',
+        climateLabel: '',
+        securityLabel: '',
+        corruptionLabel: '',
+        euElectionFilter: '',
+        proselytismLabel: '',
+        search: '',
+        page: 1,
+        pageSize: 50,
+        total: 0,
+        loading: false,
+      };
+
+      // ── DOM refs ─────────────────────────────────────────────────────────────
+      const selPlatform     = document.getElementById('sel-platform');
+      const selNarrative    = document.getElementById('sel-narrative');
+      const selLgbtq        = document.getElementById('sel-lgbtq');
+      const selUkraine      = document.getElementById('sel-ukraine');
+      const selMigration    = document.getElementById('sel-migration');
+      const selInequality   = document.getElementById('sel-inequality');
+      const selPublicHealth = document.getElementById('sel-public-health');
+      const selClimate      = document.getElementById('sel-climate');
+      const selSecurity     = document.getElementById('sel-security');
+      const selCorruption   = document.getElementById('sel-corruption');
+      const selEuElection   = document.getElementById('sel-eu-election');
+      const selProselytism  = document.getElementById('sel-proselytism');
+      const inpSearch    = document.getElementById('inp-search');
+      const btnReset     = document.getElementById('btn-reset');
+      const resultCount  = document.getElementById('result-count');
+      const tableBody    = document.getElementById('table-body');
+      const paginationEl = document.getElementById('pagination');
+      const overlay      = document.getElementById('detail-overlay');
+      const panel        = document.getElementById('detail-panel');
+      const detailClose  = document.getElementById('detail-close');
+      const detailContent= document.getElementById('detail-content');
+
+      // ── Helpers ──────────────────────────────────────────────────────────────
+      function truncate(str, len) {
+        if (!str) return '';
+        return str.length > len ? str.slice(0, len) + '…' : str;
+      }
+
+      function esc(str) {
+        const d = document.createElement('div');
+        d.textContent = str ?? '';
+        return d.innerHTML;
+      }
+
+      // ── Narrative label merge map (variant → canonical) ──────────────────────
+      const LABEL_MERGE = {
+        "An imagined 'gender ideology' is dominating Western liberal democracies (Gayropa)":
+          "An imagined 'gender ideology' is dominating Western liberal democracies.",
+        "EU institutions and Western democracies are inefficient compared to authoritarian or illiberal regimes.":
+          "EU institutions and Western democracies are inefficient compared to authoritarian regimes.",
+        "Immigrants are seizing power in the EU, which has negative economic, social, cultural or security consequences.":
+          "Immigrants are seizing power in the EU/immigration has negative economic/social/cultural/security consequences.",
+        "LGBTQIA+ identities are a public health hazard.":
+          "LGBTQ+ identities are a public health hazard.",
+        "LGBTQIA+ community is a threat to child safety.":
+          "The LGBTQ+ community is violent, dangerous and/or is a threat to child safety.",
+        "Allegations of war crimes, civilian suffering are outcomes of Western-led influence or propaganda.":
+          "Negative portrayals about Russia, such as allegations of war crimes, civilian suffering, or election fraud, are fabrications of Ukranian and/or Western propaganda.",
+        "Russia is defending itself against perceived cultural or ideological threats to traditional values or Russian identity (Russophobia).":
+          "Russia is defending itself against perceived cultural or ideological threats to traditional values or Russian identity.",
+        "Russia seeks peace and has a moral obligation to defend itself and stabilise its neighbourhood.":
+          "Russia seeks peace, supports international law and the sovereignty of nations, and has a moral obligation to defend itself, stabilise its neighbourhood and support its allies.",
+        "The EU is a neocolonial project oppressing least developed, low-income or Global South nations and economies":
+          "The EU is a neocolonial project oppressing developing and emerging countries.",
+        "The EU poses a risk to the sovereignty of its Member States, European nations and neighbouring countries by challenging their economic, political, security and national autonomy.":
+          "The EU poses a risk to the sovereignty of European nations by challenging their political and national autonomy.",
+        "The EU's environmental policies and green agenda are inefficient and have negative consequences for domestic economies, societies, public health and security.":
+          "The EU's environmental policies and green agenda are inefficient and pointless, with negative consequences for the domestic economy, society, and public health.",
+        "The West is using LGBTQ rights and inclusion as a tool of cultural colonialism, trying to force its corrupt values onto the rest of the world.":
+          "The West is using LGBTQ+ rights and inclusion as a tool of cultural colonialism, trying to force its corrupt values onto the rest of the world.",
+        "Ukraine and Ukrainians (including refugees) are aggressive war-mongerers or terrorists and pose a threat to European and global security.":
+          "Ukraine and Ukrainians are aggressive warmongers or terrorists and pose a threat to European and global security.",
+        "Ukraine is a platform for the West in its geopolitical fight against Russia, which is escalating into a world war.":
+          "Ukraine and/or other post-Soviet countries are puppets and/or platforms for the West in its geopolitical fight against Russia, which is escalating into a world war.",
+        "Ukraine or its government is ideogically aligned with or directly supporting Nazi principles. Russia is legitimate in denazifying Ukraine.":
+          "Ukraine and/or the West are ideologically aligned with or directly supporting Nazi principles. Russia is legitimate in denazifying Ukraine. ",
+      };
+
+      // Raw labels (canonical + variants) that belong to the EU Elections topic
+      const EU_ELECTION_RAW = new Set([
+        "EU institutions are illegitimate and corrupt.",
+        "EU/European national and local elections are rigged or invalid.",
+        "EU institutions and Western democracies are inefficient compared to authoritarian regimes.",
+        "EU institutions and Western democracies are inefficient compared to authoritarian or illiberal regimes.",
+        "Immigrants are seizing power in the EU/immigration has negative economic/social/cultural/security consequences.",
+        "Immigrants are seizing power in the EU, which has negative economic, social, cultural or security consequences.",
+        "The EU is a neocolonial project oppressing developing and emerging countries.",
+        "The EU is a neocolonial project oppressing least developed, low-income or Global South nations and economies",
+        "The EU poses a risk to the sovereignty of European nations by challenging their political and national autonomy.",
+        "The EU poses a risk to the sovereignty of its Member States, European nations and neighbouring countries by challenging their economic, political, security and national autonomy.",
+        "The EU's environmental policies and green agenda are inefficient and pointless, with negative consequences for the domestic economy, society, and public health.",
+        "The EU's environmental policies and green agenda are inefficient and have negative consequences for domestic economies, societies, public health and security.",
+      ]);
+
+      const EU_LABEL_RENAME = {
+        "EU institutions are illegitimate and corrupt.": "Illegitimate and corrupt EU institutions",
+        "EU institutions and Western democracies are inefficient compared to authoritarian regimes.": "Inefficient system compared to authoritarian regimes",
+        "EU/European national and local elections are rigged or invalid.": "Rigged or invalid EU/European national and local elections",
+        "Immigrants are seizing power in the EU/immigration has negative economic/social/cultural/security consequences.": "Immigrant policies with harmful consequences",
+        "The EU is a neocolonial project oppressing developing and emerging countries.": "Neocolonialism and oppression of developing and emerging countries",
+        "The EU poses a risk to the sovereignty of European nations by challenging their political and national autonomy.": "Threat to national sovereignty",
+        "The EU's environmental policies and green agenda are inefficient and pointless, with negative consequences for the domestic economy, society, and public health.": "Unefficient and harmful environmental policies and green agenda",
+      };
+
+      function applyMerge(label) { return label ? (LABEL_MERGE[label] ?? label) : label; }
+      function euElectionLabel(rawLabel) {
+        if (!rawLabel || !EU_ELECTION_RAW.has(rawLabel)) return null;
+        const canonical = applyMerge(rawLabel);
+        return EU_LABEL_RENAME[canonical] ?? canonical;
+      }
+
+      const MIGRATION_LABELS = {
+        901: 'Culture under attack',
+        902: 'Economic burden',
+        903: 'Illegals and fraudsters',
+        904: 'Extradition necessity',
+        905: 'Nation state should decide',
+        906: 'Administrative burden',
+        907: 'General system failure',
+        908: 'Security threat',
+        909: 'Criminals',
+        910: 'Welfare state overload',
+      };
+
+      function platformBadge(p) {
+        return p ? `<span class="badge platform">${esc(p)}</span>` : '—';
+      }
+
+      function narrativeBadge(n) {
+        return n ? `<span class="badge">${esc(applyMerge(n))}</span>` : '—';
+      }
+
+      // ── Fetch filters ────────────────────────────────────────────────────────
+      async function loadFilters() {
+        let narrativeLabels, platforms;
+
+        let lgbtqLabels, ukraineLabels, inequalityLabels, publicHealthLabels, climateLabels, securityLabels, corruptionLabels, proselytismLabels;
+
+        // 1. Try pre-computed static file first (works on Vercel and locally).
+        try {
+          const res = await fetch('/api-data/filters.json');
+          if (res.ok) {
+            const data = await res.json();
+            HAS_STATIC                 = true;
+            LABEL_INDEX                = data.labelIndex ?? {};
+            LGBTQ_LABEL_INDEX          = data.lgbtqLabelIndex ?? {};
+            UKRAINE_LABEL_INDEX        = data.ukraineLabelIndex ?? {};
+            INEQUALITY_LABEL_INDEX     = data.inequalityLabelIndex ?? {};
+            PUBLIC_HEALTH_LABEL_INDEX  = data.publicHealthLabelIndex ?? {};
+            CLIMATE_LABEL_INDEX        = data.climateLabelIndex ?? {};
+            SECURITY_LABEL_INDEX       = data.securityLabelIndex ?? {};
+            CORRUPTION_LABEL_INDEX     = data.corruptionLabelIndex ?? {};
+            PROSELYTISM_LABEL_INDEX    = data.proselytismLabelIndex ?? {};
+            narrativeLabels    = data.narrativeLabels;
+            platforms          = data.platforms;
+            lgbtqLabels        = data.lgbtqLabels ?? [];
+            ukraineLabels      = data.ukraineLabels ?? [];
+            inequalityLabels   = data.inequalityLabels ?? [];
+            publicHealthLabels = data.publicHealthLabels ?? [];
+            climateLabels      = data.climateLabels ?? [];
+            securityLabels     = data.securityLabels ?? [];
+            corruptionLabels   = data.corruptionLabels ?? [];
+            proselytismLabels  = data.proselytismLabels ?? [];
+          }
+        } catch (_) { /* ignore — fall through to API */ }
+
+        // 2. Fall back to live API (e.g. if static files were not generated yet).
+        if (!narrativeLabels) {
+          try {
+            const res = await fetch('/api/data?mode=filters');
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            narrativeLabels = data.narrativeLabels;
+            platforms       = data.platforms;
+            lgbtqLabels     = data.lgbtqLabels ?? [];
+            ukraineLabels   = data.ukraineLabels ?? [];
+            inequalityLabels = data.inequalityLabels ?? [];
+            publicHealthLabels = data.publicHealthLabels ?? [];
+            climateLabels   = data.climateLabels ?? [];
+            securityLabels  = data.securityLabels ?? [];
+            corruptionLabels  = data.corruptionLabels ?? [];
+            proselytismLabels = data.proselytismLabels ?? [];
+          } catch (e) {
+            console.error('Failed to load filters:', e);
+            return;
+          }
+        }
+
+        platforms.forEach((p) => {
+          const opt = document.createElement('option');
+          opt.value = p; opt.textContent = p;
+          selPlatform.appendChild(opt);
+        });
+
+        // Deduplicate via merge map: show only one option per canonical label
+        const seenCanonicals = new Set();
+        narrativeLabels.forEach((n) => {
+          const canonical = applyMerge(n);
+          if (seenCanonicals.has(canonical)) return;
+          seenCanonicals.add(canonical);
+          const opt = document.createElement('option');
+          // Use canonical as value so the static-file index lookup resolves correctly
+          opt.value = canonical;
+          opt.textContent = canonical;
+          selNarrative.appendChild(opt);
+        });
+
+        (lgbtqLabels ?? []).forEach((lbl) => {
+          const opt = document.createElement('option');
+          opt.value = lbl; opt.textContent = lbl;
+          selLgbtq.appendChild(opt);
+        });
+
+        (ukraineLabels ?? []).forEach((lbl) => {
+          const opt = document.createElement('option');
+          opt.value = lbl; opt.textContent = lbl;
+          selUkraine.appendChild(opt);
+        });
+
+        Object.entries(MIGRATION_LABELS).forEach(([code, label]) => {
+          const opt = document.createElement('option');
+          opt.value = code; opt.textContent = label;
+          selMigration.appendChild(opt);
+        });
+
+        (inequalityLabels ?? []).forEach((lbl) => {
+          const opt = document.createElement('option');
+          opt.value = lbl; opt.textContent = lbl;
+          selInequality.appendChild(opt);
+        });
+
+        (publicHealthLabels ?? []).forEach((lbl) => {
+          const opt = document.createElement('option');
+          opt.value = lbl; opt.textContent = lbl;
+          selPublicHealth.appendChild(opt);
+        });
+
+        (climateLabels ?? []).forEach((lbl) => {
+          const opt = document.createElement('option');
+          opt.value = lbl; opt.textContent = lbl;
+          selClimate.appendChild(opt);
+        });
+
+        (securityLabels ?? []).forEach((lbl) => {
+          const opt = document.createElement('option');
+          opt.value = lbl; opt.textContent = lbl;
+          selSecurity.appendChild(opt);
+        });
+
+        (corruptionLabels ?? []).forEach((lbl) => {
+          const opt = document.createElement('option');
+          opt.value = lbl; opt.textContent = lbl;
+          selCorruption.appendChild(opt);
+        });
+
+        const EU_ELECTION_OPTIONS = [
+          { value: 'EU institutions are illegitimate and corrupt.',                                                                                            text: 'Illegitimate and corrupt EU institutions' },
+          { value: 'EU/European national and local elections are rigged or invalid.',                                                                          text: 'Rigged or invalid EU/European national and local elections' },
+          { value: 'EU institutions and Western democracies are inefficient compared to authoritarian regimes.',                                               text: 'Inefficient system compared to authoritarian regimes' },
+          { value: 'Immigrants are seizing power in the EU/immigration has negative economic/social/cultural/security consequences.',                           text: 'Immigrant policies with harmful consequences' },
+          { value: 'The EU is a neocolonial project oppressing developing and emerging countries.',                                                            text: 'Neocolonialism and oppression of developing and emerging countries' },
+          { value: 'The EU poses a risk to the sovereignty of European nations by challenging their political and national autonomy.',                          text: 'Threat to national sovereignty' },
+          { value: "The EU's environmental policies and green agenda are inefficient and pointless, with negative consequences for the domestic economy, society, and public health.", text: 'Unefficient and harmful environmental policies and green agenda' },
+        ];
+        EU_ELECTION_OPTIONS.forEach(({ value, text }) => {
+          const opt = document.createElement('option');
+          opt.value = value; opt.textContent = text;
+          selEuElection.appendChild(opt);
+        });
+
+        (proselytismLabels ?? []).forEach((lbl) => {
+          const opt = document.createElement('option');
+          opt.value = lbl; opt.textContent = lbl;
+          selProselytism.appendChild(opt);
+        });
+      }
+
+      // ── Fetch data ───────────────────────────────────────────────────────────
+      async function loadData() {
+        if (state.loading) return;
+        state.loading = true;
+
+        tableBody.innerHTML = `<tr><td colspan="16"><div class="table-placeholder"><div class="spinner"></div>Loading…</div></td></tr>`;
+        paginationEl.innerHTML = '';
+        resultCount.textContent = '';
+
+        try {
+          const json = await fetchPageData();
+          if (!json) { state.loading = false; return; }   // error already rendered
+
+          state.total = json.total;
+          renderTable(json.data);
+          renderPagination(json.total, json.page, json.pageSize);
+
+          const from = (json.page - 1) * json.pageSize + 1;
+          const to   = Math.min(json.page * json.pageSize, json.total);
+          resultCount.textContent = json.total === 0
+            ? 'No results'
+            : `${from.toLocaleString()}–${to.toLocaleString()} of ${json.total.toLocaleString()} posts`;
+        } catch (e) {
+          tableBody.innerHTML = `<tr><td colspan="16"><div class="table-placeholder">${esc(String(e))}</div></td></tr>`;
+        }
+
+        state.loading = false;
+      }
+
+      /**
+       * Returns the parsed JSON response for the current state, or null (and
+       * renders its own error message) if the request cannot be fulfilled.
+       */
+      async function fetchPageData() {
+        const { platform, narrativeLabel, lgbtqLabel, ukraineLabel, migrationCode, inequalityLabel, publicHealthLabel, climateLabel, securityLabel, corruptionLabel, euElectionFilter, proselytismLabel, search, page, pageSize } = state;
+
+        // ── Path A: pre-computed static files ────────────────────────────────
+        // Fast path for the common single-filter case; anything richer
+        // (free-text search, multiple filters combined) goes to the live,
+        // Postgres-backed API — which now works the same in prod as in dev.
+        if (HAS_STATIC && !search) {
+          const url = staticUrl(page);
+
+          if (url) {
+            const res = await fetch(url);
+            if (res.ok) return res.json();
+
+            if (res.status === 404) {
+              tableBody.innerHTML = `<tr><td colspan="16"><div class="table-placeholder">
+                Only the first few pages are pre-computed for this filter.
+                Try an earlier page, or use the live search below for unlimited browsing.
+              </div></td></tr>`;
+              return null;
+            }
+            // Unexpected error from static file — fall through to the live API.
+          }
+        }
+
+        // ── Path B: live API (search, multi-filter combos, or local dev) ──────
+        const params = new URLSearchParams({ page, pageSize });
+        if (platform)          params.set('platform',          platform);
+        if (narrativeLabel)    params.set('narrativeLabel',    narrativeLabel);
+        if (lgbtqLabel)        params.set('lgbtqLabel',        lgbtqLabel);
+        if (ukraineLabel)      params.set('ukraineLabel',      ukraineLabel);
+        if (migrationCode)     params.set('predCode',          migrationCode);
+        if (inequalityLabel)   params.set('inequalityLabel',   inequalityLabel);
+        if (publicHealthLabel) params.set('publicHealthLabel', publicHealthLabel);
+        if (climateLabel)      params.set('climateLabel',      climateLabel);
+        if (securityLabel)     params.set('securityLabel',     securityLabel);
+        if (corruptionLabel)    params.set('corruptionLabel',   corruptionLabel);
+        if (euElectionFilter)   params.set('narrativeLabel',    euElectionFilter);
+        if (proselytismLabel)   params.set('proselytismLabel',  proselytismLabel);
+        if (search)             params.set('search',            search);
+
+        const res = await fetch('/api/data?' + params.toString());
+        if (!res.ok) {
+          // Try to parse JSON error from the API; fall back to status text.
+          let msg;
+          try { msg = (await res.json()).error ?? `HTTP ${res.status}`; }
+          catch (_) { msg = `HTTP ${res.status} — check deployment logs`; }
+          tableBody.innerHTML = `<tr><td colspan="16"><div class="table-placeholder" style="max-width:520px;margin:0 auto">${esc(msg)}</div></td></tr>`;
+          return null;
+        }
+        const json = await res.json();
+        if (json.error) {
+          tableBody.innerHTML = `<tr><td colspan="16"><div class="table-placeholder" style="max-width:520px;margin:0 auto">${esc(json.error)}</div></td></tr>`;
+          return null;
+        }
+        return json;
+      }
+
+      // ── Render table ─────────────────────────────────────────────────────────
+      function renderTable(rows) {
+        if (!rows.length) {
+          tableBody.innerHTML = `<tr><td colspan="16"><div class="table-placeholder">No posts match the current filters.</div></td></tr>`;
+          return;
+        }
+
+        tableBody.innerHTML = rows.map((row) => `
+          <tr data-row='${encodeURIComponent(JSON.stringify(row))}'>
+            <td>${platformBadge(row.platform)}</td>
+            <td>${esc(row.date ?? '—')}</td>
+            <td>${esc(row.post_owner_username ?? row.author_name ?? '—')}</td>
+            <td class="text-cell">${esc(truncate(row.text, 160))}</td>
+            <td>${narrativeBadge(row.Embedding_label_1)}${row.pred != null ? `<span class="badge" style="background:rgba(16,185,129,.12);color:#065f46;border:1px solid rgba(16,185,129,.3);margin-left:4px">Mig: ${esc(MIGRATION_LABELS[row.pred] ?? String(row.pred))}</span>` : ''}${row.inequality_pred ? `<span class="badge" style="background:rgba(37,99,235,.12);color:#1e3a8a;border:1px solid rgba(37,99,235,.3);margin-left:4px">Ineq: ${esc(row.inequality_pred)}</span>` : ''}${row.public_health_pred ? `<span class="badge" style="background:rgba(217,119,6,.12);color:#92400e;border:1px solid rgba(217,119,6,.3);margin-left:4px">PH: ${esc(row.public_health_pred)}</span>` : ''}${row.climate_pred ? `<span class="badge" style="background:rgba(5,150,105,.12);color:#064e3b;border:1px solid rgba(5,150,105,.3);margin-left:4px">Cli: ${esc(row.climate_pred)}</span>` : ''}${row.security_pred ? `<span class="badge" style="background:rgba(220,38,38,.12);color:#7f1d1d;border:1px solid rgba(220,38,38,.3);margin-left:4px">Sec: ${esc(row.security_pred)}</span>` : ''}${row.corruption_pred ? `<span class="badge" style="background:rgba(124,58,237,.12);color:#4c1d95;border:1px solid rgba(124,58,237,.3);margin-left:4px">Cor: ${esc(row.corruption_pred)}</span>` : ''}</td>
+            <td>${row.LMBTQ_major_1 && row.LMBTQ_major_1 !== 'None of them' ? esc(truncate(row.LMBTQ_major_1, 40)) : 'None of them'}</td>
+            <td>${row.Ukrain_war_major_1 && row.Ukrain_war_major_1 !== 'None of them' ? esc(truncate(row.Ukrain_war_major_1, 40)) : 'None of them'}</td>
+            <td>${(() => { const eu = euElectionLabel(row.Embedding_label_1); return eu ? esc(truncate(eu, 40)) : 'None of them'; })()}</td>
+            <td>${row.pred != null ? esc(MIGRATION_LABELS[row.pred] ?? String(row.pred)) : 'None of them'}</td>
+            <td>${row.inequality_pred && row.inequality_pred !== 'None of them' ? esc(truncate(row.inequality_pred, 40)) : 'None of them'}</td>
+            <td>${row.public_health_pred && row.public_health_pred !== 'None of them' ? esc(truncate(row.public_health_pred, 40)) : 'None of them'}</td>
+            <td>${row.climate_pred && row.climate_pred !== 'None of them' ? esc(truncate(row.climate_pred, 40)) : 'None of them'}</td>
+            <td>${row.security_pred && row.security_pred !== 'None of them' ? esc(truncate(row.security_pred, 40)) : 'None of them'}</td>
+            <td>${row.corruption_pred && row.corruption_pred !== 'None of them' ? esc(truncate(row.corruption_pred, 40)) : 'None of them'}</td>
+            <td>${row.proselytism_label != null ? esc(truncate(row.proselytism_label, 40)) : '—'}</td>
+            <td><code style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-faint)">${esc(truncate(row.unique_id, 28) ?? '—')}</code></td>
+          </tr>
+        `).join('');
+
+        tableBody.querySelectorAll('tr').forEach((tr) => {
+          tr.addEventListener('click', () => {
+            const row = JSON.parse(decodeURIComponent(tr.dataset.row));
+            openDetail(row);
+          });
+        });
+      }
+
+      // ── Render pagination ────────────────────────────────────────────────────
+      function renderPagination(total, page, pageSize) {
+        const totalPages = Math.ceil(total / pageSize);
+        if (totalPages <= 1) { paginationEl.innerHTML = ''; return; }
+
+        let html = '';
+
+        // Prev
+        html += `<button class="page-btn" ${page === 1 ? 'disabled' : ''} data-page="${page - 1}">&#8592;</button>`;
+
+        // Page numbers with ellipsis
+        const pages = pageRange(page, totalPages);
+        let prev = null;
+        for (const p of pages) {
+          if (prev !== null && p - prev > 1) html += `<span class="page-btn" style="cursor:default;border:none;background:none;color:var(--ink-faint)">…</span>`;
+          html += `<button class="page-btn${p === page ? ' is-active' : ''}" data-page="${p}">${p}</button>`;
+          prev = p;
+        }
+
+        // Next
+        html += `<button class="page-btn" ${page === totalPages ? 'disabled' : ''} data-page="${page + 1}">&#8594;</button>`;
+
+        // Page size selector
+        html += `<div class="page-size-wrap">
+          Rows:
+          <select id="sel-page-size" aria-label="Rows per page">
+            ${[25, 50, 100].map((n) => `<option value="${n}"${n === pageSize ? ' selected' : ''}>${n}</option>`).join('')}
+          </select>
+        </div>`;
+
+        paginationEl.innerHTML = html;
+
+        paginationEl.querySelectorAll('.page-btn[data-page]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            state.page = parseInt(btn.dataset.page, 10);
+            loadData();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          });
+        });
+
+        const selSize = document.getElementById('sel-page-size');
+        if (selSize) {
+          selSize.addEventListener('change', () => {
+            state.pageSize = parseInt(selSize.value, 10);
+            state.page = 1;
+            loadData();
+          });
+        }
+      }
+
+      function pageRange(current, total) {
+        const delta = 2;
+        const pages = new Set();
+        pages.add(1);
+        pages.add(total);
+        for (let i = Math.max(2, current - delta); i <= Math.min(total - 1, current + delta); i++) pages.add(i);
+        return Array.from(pages).sort((a, b) => a - b);
+      }
+
+      // ── Detail panel ─────────────────────────────────────────────────────────
+      function openDetail(row) {
+        const keys = DETAIL_ORDER.filter((k) => k in row);
+        // Also append any keys not in DETAIL_ORDER
+        Object.keys(row).forEach((k) => { if (!DETAIL_ORDER.includes(k)) keys.push(k); });
+
+        detailContent.innerHTML = keys.map((k) => {
+          const val = row[k];
+          const isNull = val === null || val === undefined || val === '';
+          let display;
+          if (isNull) {
+            display = `<span class="detail-field-value is-null">—</span>`;
+          } else if (k === 'post_url' || k === 'link_attachment_link') {
+            display = `<a href="${esc(val)}" target="_blank" rel="noopener" style="color:var(--purple-deep);word-break:break-all;">${esc(val)}</a>`;
+          } else if (k === 'pred') {
+            const lbl = MIGRATION_LABELS[val] ?? String(val);
+            display = `<div class="detail-field-value">${esc(lbl)} <span style="color:var(--ink-faint);font-family:'JetBrains Mono',monospace;font-size:11px">(${esc(String(val))})</span></div>`;
+          } else if (k === 'Embedding_label_1' || k === 'Embedding_label_2') {
+            display = `<div class="detail-field-value">${esc(applyMerge(String(val)))}</div>`;
+          } else {
+            display = `<div class="detail-field-value">${esc(String(val))}</div>`;
+          }
+          return `<div class="detail-field">
+            <div class="detail-field-label">${esc(LABELS[k] ?? k)}</div>
+            ${display}
+          </div>`;
+        }).join('');
+
+        overlay.classList.add('is-open');
+        panel.classList.add('is-open');
+        detailClose.focus();
+      }
+
+      function closeDetail() {
+        overlay.classList.remove('is-open');
+        panel.classList.remove('is-open');
+      }
+
+      detailClose.addEventListener('click', closeDetail);
+      overlay.addEventListener('click', closeDetail);
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDetail(); });
+
+      // ── Filter events ────────────────────────────────────────────────────────
+      selPlatform.addEventListener('change',    () => { state.platform        = selPlatform.value;    state.page = 1; loadData(); });
+      selNarrative.addEventListener('change',   () => { state.narrativeLabel  = selNarrative.value;   state.page = 1; loadData(); });
+      selLgbtq.addEventListener('change',       () => { state.lgbtqLabel      = selLgbtq.value;       state.page = 1; loadData(); });
+      selUkraine.addEventListener('change',     () => { state.ukraineLabel    = selUkraine.value;     state.page = 1; loadData(); });
+      selMigration.addEventListener('change',   () => { state.migrationCode   = selMigration.value;   state.page = 1; loadData(); });
+      selInequality.addEventListener('change',  () => { state.inequalityLabel = selInequality.value;  state.page = 1; loadData(); });
+      selPublicHealth.addEventListener('change', () => { state.publicHealthLabel = selPublicHealth.value; state.page = 1; loadData(); });
+      selClimate.addEventListener('change',     () => { state.climateLabel      = selClimate.value;      state.page = 1; loadData(); });
+      selSecurity.addEventListener('change',    () => { state.securityLabel     = selSecurity.value;     state.page = 1; loadData(); });
+      selCorruption.addEventListener('change',  () => { state.corruptionLabel   = selCorruption.value;   state.page = 1; loadData(); });
+      selEuElection.addEventListener('change',  () => { state.euElectionFilter  = selEuElection.value;   state.page = 1; loadData(); });
+      selProselytism.addEventListener('change', () => { state.proselytismLabel  = selProselytism.value;  state.page = 1; loadData(); });
+
+      let searchTimer;
+      inpSearch.addEventListener('input', () => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => { state.search = inpSearch.value.trim(); state.page = 1; loadData(); }, 350);
+      });
+
+      btnReset.addEventListener('click', () => {
+        selPlatform.value     = '';
+        selNarrative.value    = '';
+        selLgbtq.value        = '';
+        selUkraine.value      = '';
+        selMigration.value    = '';
+        selInequality.value   = '';
+        selPublicHealth.value = '';
+        selClimate.value      = '';
+        selSecurity.value     = '';
+        selCorruption.value   = '';
+        selEuElection.value   = '';
+        selProselytism.value  = '';
+        inpSearch.value       = '';
+        state = { ...state, platform: '', narrativeLabel: '', lgbtqLabel: '', ukraineLabel: '', migrationCode: '', inequalityLabel: '', publicHealthLabel: '', climateLabel: '', securityLabel: '', corruptionLabel: '', euElectionFilter: '', proselytismLabel: '', search: '', page: 1 };
+        loadData();
+      });
+
+      // ── Init ─────────────────────────────────────────────────────────────────
+      // Must await loadFilters so HAS_STATIC / LABEL_INDEX are set before
+      // loadData decides whether to use static files or the API.
+      await loadFilters();
+      loadData();
+    })();
+    </script>
+  </body>
+</html>

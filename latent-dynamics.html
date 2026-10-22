@@ -1,0 +1,663 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Latent Dynamics — AgendaZ SPINE</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <meta name="theme-color" content="#f8f3e9" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <style>
+      .ld-hero { padding: 56px 0 40px; }
+
+      .ld-section { max-width: var(--max); margin: 0 auto; padding: 0 24px 64px; }
+      .ld-section-title { font-size: 22px; font-weight: 700; color: var(--ink); margin: 0 0 6px; }
+      .ld-part-label { font-family: "JetBrains Mono", monospace; font-size: 11px; color: var(--purple-deep); text-transform: uppercase; letter-spacing: 0.16em; margin-bottom: 6px; }
+      .ld-section-sub { font-size: 14px; color: var(--ink-dim); margin: 0 0 24px; max-width: 780px; }
+      .ld-divider { border: none; border-top: 1px solid var(--border); margin: 0 24px 56px; max-width: var(--max); }
+
+      .domain-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+      .domain-pill {
+        padding: 6px 14px; border-radius: 999px; border: 1.5px solid var(--border-strong);
+        background: var(--paper, #fff); color: var(--ink-dim); font-size: 13px; font-weight: 500;
+        cursor: pointer; transition: all 0.16s var(--ease); white-space: nowrap;
+      }
+      .domain-pill:hover { border-color: var(--purple); color: var(--purple-deep); }
+      .domain-pill.is-active { color: #fff; border-color: transparent; }
+
+      .chart-card {
+        background: var(--paper, #fff); border: 1px solid var(--border); border-radius: var(--radius);
+        box-shadow: var(--shadow-sm); padding: 24px; margin-bottom: 24px;
+      }
+      .chart-card-title { font-size: 14px; font-weight: 600; color: var(--ink); margin: 0 0 4px; }
+      .chart-card-sub { font-size: 12px; color: var(--ink-faint); margin: 0 0 16px; }
+      .chart-wrap { position: relative; }
+
+      .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+      @media (max-width: 820px) { .two-col { grid-template-columns: 1fr; } }
+
+      .stat-row { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 28px; }
+      .stat-chip { background: var(--purple-soft); border-radius: 10px; padding: 10px 16px; min-width: 140px; }
+      .stat-chip-val { font-family: "JetBrains Mono", monospace; font-size: 20px; font-weight: 700; color: var(--purple-deep); line-height: 1.2; }
+      .stat-chip-lbl { font-size: 11px; color: var(--ink-dim); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.04em; }
+
+      .toggle-row { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+      .toggle-label { font-size: 13px; color: var(--ink-dim); }
+      .toggle-btn {
+        padding: 4px 12px; border-radius: 999px; border: 1.5px solid var(--border-strong); background: transparent;
+        color: var(--ink-dim); font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.14s; font-family: inherit;
+      }
+      .toggle-btn.is-on { background: var(--purple-soft); border-color: var(--purple); color: var(--purple-deep); }
+
+      /* ── Window timeline list (reused from Narrative Conflation) ────────── */
+      .window-list { display: flex; flex-direction: column; gap: 0; }
+      .window-row {
+        display: grid; grid-template-columns: 30px 108px 1fr 96px; align-items: center; gap: 12px;
+        padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px;
+      }
+      .window-row:last-child { border-bottom: none; }
+      .window-rank { font-family: "JetBrains Mono", monospace; font-weight: 700; color: var(--purple-deep); font-size: 13px; }
+      .window-dates { font-family: "JetBrains Mono", monospace; font-size: 11px; line-height: 1.5; color: var(--ink-dim); white-space: nowrap; }
+      .window-track { position: relative; height: 12px; background: var(--bg-2); border-radius: 6px; min-width: 100px; }
+      .window-bar { position: absolute; top: 0; height: 100%; border-radius: 6px; min-width: 3px; opacity: 0.85; }
+      .window-events { font-family: "JetBrains Mono", monospace; font-size: 11px; color: var(--ink); text-align: right; white-space: nowrap; }
+
+      /* ── Indicator cards (Part C) ─────────────────────────────────────── */
+      .indicator-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+      @media (max-width: 980px) { .indicator-grid { grid-template-columns: repeat(2, 1fr); } }
+      @media (max-width: 560px) { .indicator-grid { grid-template-columns: 1fr; } }
+      .indicator-card {
+        background: var(--paper); border: 1px solid var(--border); border-radius: var(--radius);
+        box-shadow: var(--shadow-sm); padding: 20px;
+      }
+      .indicator-name { font-size: 13.5px; font-weight: 700; color: var(--ink); margin-bottom: 14px; text-transform: capitalize; }
+      .indicator-metric { display: flex; justify-content: space-between; align-items: baseline; padding: 6px 0; border-bottom: 1px solid var(--border); }
+      .indicator-metric:last-child { border-bottom: none; }
+      .indicator-metric-lbl { font-size: 11.5px; color: var(--ink-faint); }
+      .indicator-metric-val { font-family: "JetBrains Mono", monospace; font-size: 15px; font-weight: 700; color: var(--purple-deep); }
+
+      #loading {
+        position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center;
+        z-index: 100; flex-direction: column; gap: 12px; transition: opacity 0.3s;
+      }
+      #loading.hidden { opacity: 0; pointer-events: none; }
+      .spinner { width: 36px; height: 36px; border: 3px solid var(--border-strong); border-top-color: var(--purple); border-radius: 50%; animation: spin 0.7s linear infinite; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      #loading-msg { font-size: 14px; color: var(--ink-dim); }
+    </style>
+      <script src="spine-config.js"></script>
+    <script src="spine-data.js"></script>
+  </head>
+  <body>
+    <div id="loading">
+      <div class="spinner"></div>
+      <div id="loading-msg">Loading latent dynamics data…</div>
+    </div>
+
+    <header class="nav">
+      <a href="index.html" class="logo" aria-label="AgendaZ home">
+        <img src="favicon.svg" class="logo-mark" alt="" aria-hidden="true" width="30" height="30" />
+        <span class="logo-text"><span class="logo-prefix">Agenda</span><span class="logo-suffix">Z SPINE</span></span>
+      </a>
+      <nav class="nav-links" aria-label="Main">
+        <a href="index.html">Home</a>
+        <a href="data-explorer.html">Data Explorer</a>
+        <a href="statistics.html">Statistics</a>
+        <a href="networks.html">Networks</a>
+        <a href="communities.html">Communities</a>
+        <a href="proselytism.html">Proselytism</a>
+        <a href="narrative-conflation.html">Narrative Conflation</a>
+        <a href="latent-dynamics.html" class="is-active">Latent Dynamics</a>
+        <a href="information.html">Information</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="page-hero ld-hero">
+        <div class="page-hero-bg network" aria-hidden="true"></div>
+        <div class="page-hero-content">
+          <span class="section-label">T4.3 · Latent dynamics, simulator &amp; early warning</span>
+          <h1>Latent Dynamics</h1>
+          <p class="lead">
+            Time-resolved graph metrics, cross-validated burst detection, actor ramp-up curves,
+            a calibrated network simulator, and prospective early-warning indicators — built on
+            top of T4.1's networks, T4.2's conflation windows, and T4.4's proselytism predictions.
+          </p>
+        </div>
+      </section>
+
+      <!-- ── Domain selector (drives A1/A2) ──────────────────────────────── -->
+      <div class="ld-section" style="padding-top:48px;padding-bottom:0">
+        <fieldset class="domain-pills" id="domain-pills" aria-label="Select domain" style="border:none;padding:0;margin:0"></fieldset>
+      </div>
+
+      <!-- ── A1: weekly panel ─────────────────────────────────────────────── -->
+      <div class="ld-section" style="padding-top:24px">
+        <div class="ld-part-label">Part A1 · Unified weekly panel</div>
+        <h2 class="ld-section-title">Post volume, coordination &amp; merger activity</h2>
+        <p class="ld-section-sub">One row per domain × week: raw post volume, new coordinated co-share edges, and cross-/within-domain narrative-merger rates — time-resolving what D4.2's Discussion flagged as a gap.</p>
+        <div class="chart-card">
+          <div class="chart-card-title" id="a1-volume-title">Weekly post volume &amp; coordination events</div>
+          <div class="chart-card-sub" id="a1-volume-sub"></div>
+          <div class="chart-wrap" style="height:300px"><canvas id="chart-a1-volume"></canvas></div>
+        </div>
+        <div class="two-col">
+          <div class="chart-card">
+            <div class="chart-card-title">Merger-event rates</div>
+            <div class="chart-card-sub">Weekly merger events, normalized by the relevant account pool's post volume (T4.2's convention)</div>
+            <div class="chart-wrap" style="height:280px"><canvas id="chart-a1-merger"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-card-title">Proselytism composition (P1–P7)</div>
+            <div class="chart-card-sub">Share of labeled posts per code, per week · gaps = weeks with zero labeled posts</div>
+            <div class="chart-wrap" style="height:280px"><canvas id="chart-a1-pcodes"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <hr class="ld-divider" />
+
+      <!-- ── A2: rolling graph metrics ────────────────────────────────────── -->
+      <div class="ld-section">
+        <div class="ld-part-label">Part A2 · Rolling graph-level metrics</div>
+        <h2 class="ld-section-title">The IFPN network, replayed week by week</h2>
+        <p class="ld-section-sub">D4.1/D4.2 report one all-time snapshot per domain; here the same network is replayed from its day-resolved edge-formation frames. "Week" = only edges active that week (volatile signal); "cumulative" = the growth trajectory.</p>
+        <div class="toggle-row">
+          <span class="toggle-label">View:</span>
+          <button class="toggle-btn is-on" id="btn-a2-week">Week</button>
+          <button class="toggle-btn" id="btn-a2-cum">Cumulative</button>
+        </div>
+        <div class="two-col">
+          <div class="chart-card">
+            <div class="chart-card-title">Density &amp; mean edge weight</div>
+            <div class="chart-card-sub" id="a2-sub-1"></div>
+            <div class="chart-wrap" style="height:280px"><canvas id="chart-a2-density"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-card-title">Saturated (clique-like) cluster share</div>
+            <div class="chart-card-sub">Share of connected components (≥3 nodes) with min degree = max degree</div>
+            <div class="chart-wrap" style="height:280px"><canvas id="chart-a2-saturated"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <hr class="ld-divider" />
+
+      <!-- ── A3: corroborated burst windows ───────────────────────────────── -->
+      <div class="ld-section">
+        <div class="ld-part-label">Part A3 · Cross-validated burst detection</div>
+        <h2 class="ld-section-title">Corroborated activity windows</h2>
+        <p class="ld-section-sub" id="a3-sub">A week counts as a corroborated burst when 2 or more of four independent signals (post volume, coordination events, cross-domain mergers, proselytism volume) fire simultaneously — a multi-layer notion of "heightened activity," not a repeat of any single D4.2 window.</p>
+        <div class="chart-card">
+          <div class="chart-card-title" id="a3-title">Corroborated windows</div>
+          <div class="chart-card-sub" id="a3-window-sub"></div>
+          <div class="window-list" id="a3-window-list"></div>
+        </div>
+      </div>
+
+      <hr class="ld-divider" />
+
+      <!-- ── A4: actor trajectories ────────────────────────────────────────── -->
+      <div class="ld-section">
+        <div class="ld-part-label">Part A4 · Actor-level trajectories</div>
+        <h2 class="ld-section-title">Bridge accounts ramp up over time</h2>
+        <p class="ld-section-sub">The gap between a bridge account's k-th and (k+1)-th merger event, pooled across all cross-domain bridge accounts — the mean gap drops sharply as accounts accumulate more merger events.</p>
+        <div class="chart-card">
+          <div class="chart-card-title">Mean gap between successive merger events</div>
+          <div class="chart-card-sub">By event index k (2nd event onward) · pooled across bridge &amp; multi-narrative accounts · shown while ≥10 accounts still contribute</div>
+          <div class="chart-wrap" style="height:300px"><canvas id="chart-rampup"></canvas></div>
+        </div>
+        <div class="two-col" style="align-items:start">
+          <div class="chart-card">
+            <div class="chart-card-title">Top cross-domain bridge accounts</div>
+            <div class="chart-card-sub">By total merger-event count</div>
+            <div class="data-table-wrap" style="box-shadow:none;border:1px solid var(--border);max-height:360px;overflow-y:auto">
+              <table class="data-table" style="min-width:0">
+                <thead><tr><th>Account</th><th>Domains</th><th>Events</th><th>Ramp-up (d)</th></tr></thead>
+                <tbody id="bridge-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-card-title">Top within-domain multi-narrative accounts</div>
+            <div class="chart-card-sub">By total merger-event count</div>
+            <div class="data-table-wrap" style="box-shadow:none;border:1px solid var(--border);max-height:360px;overflow-y:auto">
+              <table class="data-table" style="min-width:0">
+                <thead><tr><th>Account</th><th>Narratives</th><th>Events</th><th>Ramp-up (d)</th></tr></thead>
+                <tbody id="multi-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <hr class="ld-divider" />
+
+      <!-- ── A5: proselytism in context ────────────────────────────────────── -->
+      <div class="ld-section">
+        <div class="ld-part-label">Part A5 · Proselytism in context</div>
+        <h2 class="ld-section-title">Merger events are disproportionately proselytising</h2>
+        <p class="ld-section-sub" id="a5-sub">Every merger event is defined by an exact pair of posts. Both are compared against baseline posts by the same account pool that aren't part of a merger event: merger-event posts carry a P1–P7 proselytism code far more often than baseline, in every domain.</p>
+        <div class="two-col">
+          <div class="chart-card">
+            <div class="chart-card-title">Proselytizing rate — merger-event posts vs. baseline</div>
+            <div class="chart-card-sub">Two-proportion z-test per domain · *** = p &lt; 0.0001</div>
+            <div class="chart-wrap" style="height:320px"><canvas id="chart-a5"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-card-title">P-code composition</div>
+            <div class="toggle-row" style="margin-bottom:4px">
+              <span class="toggle-label">Scope:</span>
+              <select class="filter-select" id="sel-a5-domain">
+                <option value="ALL">All domains</option>
+                <option value="EU elections">EU elections</option>
+                <option value="LGBTQ">LGBTQ</option>
+                <option value="Ukraine war">Ukraine war</option>
+              </select>
+            </div>
+            <div class="chart-card-sub">Share of labeled posts per proselytism code (P1–P7), among posts that carry one</div>
+            <div class="chart-wrap" style="height:320px"><canvas id="chart-a5-pcodes"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <hr class="ld-divider" />
+
+      <!-- ── Part B: simulator ────────────────────────────────────────────── -->
+      <div class="ld-section">
+        <div class="ld-part-label">Part B · Calibrated network simulator</div>
+        <h2 class="ld-section-title">Validation</h2>
+        <p class="ld-section-sub">A generative temporal-network model calibrated directly from D4.1's own summary tables (Table 3 full IFPN, Table 4 high-coordination IFPN). Fit is honest, not cherry-picked — simulated edge counts land within ~20% of target, but the model undershoots real saturated-cluster share and edge-weight inflation.</p>
+        <div class="chart-card">
+          <div class="chart-card-title">Simulator validation — target vs. simulated</div>
+          <div class="chart-card-sub">5 replicate runs per domain, compared against structural statistics not used for calibration</div>
+          <div class="data-table-wrap" style="box-shadow:none;border:1px solid var(--border)">
+            <table class="data-table" style="min-width:640px">
+              <thead><tr><th>Domain</th><th>Communities (target / sim)</th><th>Saturated share (target / sim)</th><th>Edges (target / sim)</th><th>Mean edge weight (target / sim)</th><th>Edge-weight inflation (target / sim)</th></tr></thead>
+              <tbody id="validation-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <hr class="ld-divider" />
+
+      <!-- ── Part C: early warning ─────────────────────────────────────────── -->
+      <div class="ld-section">
+        <div class="ld-part-label">Part C · Prospective early-warning signals</div>
+        <h2 class="ld-section-title">Backtest against 48 ground-truth windows</h2>
+        <p class="ld-section-sub">Four indicators, each reformulated prospectively (would it have fired before the window was visible in hindsight), backtested against T4.2's conflation windows, D4.1's peak-day anchors, and A3's corroborated windows (8-week lookback).</p>
+        <div class="indicator-grid" id="indicator-grid"></div>
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <img src="favicon.svg" class="logo-mark" alt="" aria-hidden="true" width="24" height="24" />
+          <span><span class="logo-prefix">Agenda</span><span class="logo-suffix">Z</span></span>
+        </div>
+        <div class="footer-links">
+          <a href="index.html">Home</a>
+          <a href="data-explorer.html">Data Explorer</a>
+          <a href="networks.html">Networks</a>
+          <a href="communities.html">Communities</a>
+          <a href="proselytism.html">Proselytism</a>
+          <a href="narrative-conflation.html">Narrative Conflation</a>
+          <a href="latent-dynamics.html">Latent Dynamics</a>
+          <a href="statistics.html">Statistics</a>
+          <a href="information.html">Information</a>
+        </div>
+        <div class="footer-copy">© <span id="year"></span> AgendaZ · poltextLAB</div>
+      </div>
+    </footer>
+
+    <script>
+    (async () => {
+      const data = await fetch('/api-data/t43.json').then(r => r.json());
+      const DOMAINS = data.domains;
+      const COLORS = data.domainColors;
+      const P_CODES = data.pCodes;
+      const rangeStart = new Date(data.dateRange.start);
+      const rangeEnd = new Date(data.dateRange.end);
+      const rangeSpanMs = rangeEnd - rangeStart;
+
+      let domain = DOMAINS[0];
+      let a2View = 'week';
+
+      // ── Helpers ──────────────────────────────────────────────────────────
+      function fmtN(n) { return Number(n).toLocaleString(); }
+      function fmtPct(n) { return n == null ? '—' : `${(n * 100).toFixed(1)}%`; }
+      function fmtDate(d) {
+        const dt = new Date(d);
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        return `${months[dt.getUTCMonth()]} ${dt.getUTCDate()}, ${dt.getUTCFullYear()}`;
+      }
+      function truncate(s, n) { return s && s.length > n ? s.slice(0, n) + '…' : (s || ''); }
+      function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+      function hexToRgba(hex, a) {
+        const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+        return `rgba(${r},${g},${b},${a})`;
+      }
+      function palette(i) {
+        const p = ['#6d28d9','#ec4899','#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6'];
+        return p[i % p.length];
+      }
+      function destroyIfExists(c) { if (c) c.destroy(); }
+
+      function buildDomainPills(containerId, onSelect, initial) {
+        const el = document.getElementById(containerId);
+        for (const dom of DOMAINS) {
+          const btn = document.createElement('button');
+          btn.className = 'domain-pill' + (dom === initial ? ' is-active' : '');
+          btn.textContent = dom;
+          btn.dataset.key = dom;
+          if (dom === initial) btn.style.background = COLORS[dom];
+          btn.addEventListener('click', () => {
+            el.querySelectorAll('.domain-pill').forEach(b => {
+              const active = b.dataset.key === dom;
+              b.classList.toggle('is-active', active);
+              b.style.background = active ? COLORS[dom] : '';
+            });
+            onSelect(dom);
+          });
+          el.appendChild(btn);
+        }
+      }
+
+      // ══ A1: weekly panel ═══════════════════════════════════════════════
+      let chartA1Volume, chartA1Merger, chartA1Pcodes;
+      function renderA1() {
+        const rows = data.weeklyPanel[domain] || [];
+        const weeks = rows.map(r => r.week);
+        const color = COLORS[domain];
+
+        document.getElementById('a1-volume-title').textContent = `${domain} — weekly post volume & coordination events`;
+        document.getElementById('a1-volume-sub').textContent = `${weeks.length} weeks · ${fmtN(rows.reduce((s,r)=>s+r.raw_post_volume,0))} posts total`;
+
+        destroyIfExists(chartA1Volume);
+        chartA1Volume = new Chart(document.getElementById('chart-a1-volume'), {
+          type: 'bar',
+          data: {
+            labels: weeks,
+            datasets: [
+              { type: 'bar', label: 'Post volume', data: rows.map(r => r.raw_post_volume), backgroundColor: hexToRgba(color, 0.55), borderRadius: 2, yAxisID: 'y' },
+              { type: 'line', label: 'Coordination events', data: rows.map(r => r.coordination_event_count), borderColor: '#1f0d35', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, tension: 0.25, yAxisID: 'y1' },
+            ],
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12 } }, tooltip: { mode: 'index' } },
+            scales: {
+              x: { ticks: { maxTicksLimit: 14, maxRotation: 45, font: { family: "'JetBrains Mono', monospace", size: 9 } }, grid: { display: false } },
+              y: { position: 'left', beginAtZero: true, ticks: { font: { size: 10 } }, grid: { color: 'rgba(31,13,53,0.05)' }, title: { display: true, text: 'Posts', font: { size: 10 } } },
+              y1: { position: 'right', beginAtZero: true, ticks: { font: { size: 10 } }, grid: { display: false }, title: { display: true, text: 'Coord. events', font: { size: 10 } } },
+            },
+          },
+        });
+
+        destroyIfExists(chartA1Merger);
+        chartA1Merger = new Chart(document.getElementById('chart-a1-merger'), {
+          type: 'line',
+          data: {
+            labels: weeks,
+            datasets: [
+              { label: 'Cross-domain rate', data: rows.map(r => r.cross_domain_merger_rate), borderColor: '#ec4899', backgroundColor: hexToRgba('#ec4899', 0.1), borderWidth: 2, pointRadius: 0, tension: 0.25, fill: true },
+              { label: 'Within-domain rate', data: rows.map(r => r.within_domain_merger_rate), borderColor: '#3b82f6', backgroundColor: hexToRgba('#3b82f6', 0.1), borderWidth: 2, pointRadius: 0, tension: 0.25, fill: true },
+            ],
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom', labels: { font: { size: 10.5 }, boxWidth: 10 } }, tooltip: { mode: 'index' } },
+            scales: {
+              x: { ticks: { maxTicksLimit: 10, maxRotation: 45, font: { family: "'JetBrains Mono', monospace", size: 9 } }, grid: { display: false } },
+              y: { beginAtZero: true, ticks: { font: { size: 10 } }, grid: { color: 'rgba(31,13,53,0.05)' } },
+            },
+          },
+        });
+
+        destroyIfExists(chartA1Pcodes);
+        const pDatasets = P_CODES.map((p, i) => ({
+          label: p,
+          data: rows.map(r => r[`share_${p}`] == null ? null : r[`share_${p}`] * 100),
+          borderColor: palette(i), backgroundColor: hexToRgba(palette(i), 0.15),
+          borderWidth: 1.5, pointRadius: 0, fill: true, tension: 0.2, spanGaps: false,
+        }));
+        chartA1Pcodes = new Chart(document.getElementById('chart-a1-pcodes'), {
+          type: 'line',
+          data: { labels: weeks, datasets: pDatasets },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 10 } }, tooltip: { mode: 'index', callbacks: { label: ctx => ctx.raw == null ? `  ${ctx.dataset.label}: no data` : `  ${ctx.dataset.label}: ${ctx.raw.toFixed(1)}%` } } },
+            scales: {
+              x: { stacked: true, ticks: { maxTicksLimit: 10, maxRotation: 45, font: { family: "'JetBrains Mono', monospace", size: 9 } }, grid: { display: false } },
+              y: { stacked: true, beginAtZero: true, max: 100, ticks: { font: { size: 10 }, callback: v => `${v}%` }, grid: { color: 'rgba(31,13,53,0.05)' } },
+            },
+          },
+        });
+      }
+
+      // ══ A2: rolling graph metrics ═══════════════════════════════════════
+      let chartA2Density, chartA2Saturated;
+      function renderA2() {
+        const rows = data.rollingGraphMetrics[domain] || [];
+        const weeks = rows.map(r => r.week);
+        const suffix = a2View === 'week' ? '_week' : '_cum';
+        const color = COLORS[domain];
+
+        document.getElementById('a2-sub-1').textContent = `${a2View === 'week' ? 'Weekly-active edges' : 'Cumulative graph'} · ${domain}`;
+
+        destroyIfExists(chartA2Density);
+        chartA2Density = new Chart(document.getElementById('chart-a2-density'), {
+          type: 'line',
+          data: {
+            labels: weeks,
+            datasets: [
+              { label: 'Density', data: rows.map(r => r[`density${suffix}`]), borderColor: color, backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, tension: 0.25, yAxisID: 'y' },
+              { label: 'Mean edge weight', data: rows.map(r => r[`mean_edge_weight${suffix}`]), borderColor: '#1f0d35', backgroundColor: 'transparent', borderWidth: 2, borderDash: [4,3], pointRadius: 0, tension: 0.25, yAxisID: 'y1' },
+            ],
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom', labels: { font: { size: 10.5 }, boxWidth: 10 } }, tooltip: { mode: 'index' } },
+            scales: {
+              x: { ticks: { maxTicksLimit: 10, maxRotation: 45, font: { family: "'JetBrains Mono', monospace", size: 9 } }, grid: { display: false } },
+              y: { position: 'left', beginAtZero: true, ticks: { font: { size: 10 } }, grid: { color: 'rgba(31,13,53,0.05)' }, title: { display: true, text: 'Density', font: { size: 10 } } },
+              y1: { position: 'right', beginAtZero: true, ticks: { font: { size: 10 } }, grid: { display: false }, title: { display: true, text: 'Edge weight', font: { size: 10 } } },
+            },
+          },
+        });
+
+        destroyIfExists(chartA2Saturated);
+        chartA2Saturated = new Chart(document.getElementById('chart-a2-saturated'), {
+          type: 'bar',
+          data: { labels: weeks, datasets: [{ label: 'Saturated share', data: rows.map(r => r[`saturated_cluster_share${suffix}`] == null ? null : r[`saturated_cluster_share${suffix}`] * 100), backgroundColor: hexToRgba(color, 0.65), borderRadius: 2 }] },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ctx.raw == null ? '  no clusters ≥3 nodes' : `  ${ctx.raw.toFixed(0)}%` } } },
+            scales: {
+              x: { ticks: { maxTicksLimit: 10, maxRotation: 45, font: { family: "'JetBrains Mono', monospace", size: 9 } }, grid: { display: false } },
+              y: { beginAtZero: true, max: 100, ticks: { font: { size: 10 }, callback: v => `${v}%` }, grid: { color: 'rgba(31,13,53,0.05)' } },
+            },
+          },
+        });
+      }
+
+      // ══ A3: corroborated windows ═════════════════════════════════════════
+      function renderA3() {
+        const rows = data.corroboratedWindows[domain] || [];
+        document.getElementById('a3-title').textContent = `${domain} — corroborated burst windows`;
+        document.getElementById('a3-window-sub').textContent = `${rows.length} of ${data.corroboratedWindowsCount} corroborated windows (all domains) fall in ${domain}`;
+        const maxSignals = 4;
+        const color = COLORS[domain];
+        document.getElementById('a3-window-list').innerHTML = rows.map((r, i) => {
+          const startPct = Math.max(0, Math.min(100, ((new Date(r.window_start) - rangeStart) / rangeSpanMs) * 100));
+          const endPct = Math.max(0, Math.min(100, ((new Date(r.window_end) - rangeStart) / rangeSpanMs) * 100));
+          const widthPct = Math.max(0.6, endPct - startPct);
+          const intensity = 0.35 + 0.55 * (r.max_signals_bursting / maxSignals);
+          return `
+            <div class="window-row">
+              <div class="window-rank">#${i + 1}</div>
+              <div class="window-dates">${fmtDate(r.window_start)}<br>– ${fmtDate(r.window_end)}</div>
+              <div class="window-track"><div class="window-bar" style="left:${startPct}%;width:${widthPct}%;background:${color};opacity:${intensity.toFixed(2)}"></div></div>
+              <div class="window-events">${r.max_signals_bursting}/4 signals<br><span style="color:var(--ink-faint);font-size:10px">${r.duration_weeks}w</span></div>
+            </div>`;
+        }).join('') || `<div class="table-placeholder">No corroborated windows for this domain.</div>`;
+      }
+
+      buildDomainPills('domain-pills', dom => { domain = dom; renderA1(); renderA2(); renderA3(); }, domain);
+      document.getElementById('btn-a2-week').addEventListener('click', () => {
+        a2View = 'week';
+        document.getElementById('btn-a2-week').classList.add('is-on');
+        document.getElementById('btn-a2-cum').classList.remove('is-on');
+        renderA2();
+      });
+      document.getElementById('btn-a2-cum').addEventListener('click', () => {
+        a2View = 'cum';
+        document.getElementById('btn-a2-cum').classList.add('is-on');
+        document.getElementById('btn-a2-week').classList.remove('is-on');
+        renderA2();
+      });
+      renderA1();
+      renderA2();
+      renderA3();
+
+      // ══ A4: ramp-up curve & actor tables ═════════════════════════════════
+      const rampup = data.rampupCurve;
+      new Chart(document.getElementById('chart-rampup'), {
+        type: 'line',
+        data: {
+          labels: rampup.map(r => `#${r.event_index}`),
+          datasets: [
+            { label: 'Mean gap (days)', data: rampup.map(r => r.mean_gap_days), borderColor: '#6d28d9', backgroundColor: hexToRgba('#6d28d9', 0.1), borderWidth: 2.5, pointRadius: 3, tension: 0.3, fill: true, yAxisID: 'y' },
+            { label: '# accounts', data: rampup.map(r => r.n_accounts), borderColor: '#b88746', backgroundColor: 'transparent', borderWidth: 1.5, borderDash: [4,3], pointRadius: 0, tension: 0.3, yAxisID: 'y1' },
+          ],
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12 } }, tooltip: { mode: 'index' } },
+          scales: {
+            x: { title: { display: true, text: 'Event index (k-th merger event)', font: { size: 11 } }, ticks: { font: { family: "'JetBrains Mono', monospace", size: 10 } }, grid: { display: false } },
+            y: { position: 'left', beginAtZero: true, ticks: { font: { size: 10 } }, grid: { color: 'rgba(31,13,53,0.05)' }, title: { display: true, text: 'Days', font: { size: 10 } } },
+            y1: { position: 'right', beginAtZero: true, ticks: { font: { size: 10 } }, grid: { display: false }, title: { display: true, text: 'Accounts', font: { size: 10 } } },
+          },
+        },
+      });
+
+      document.getElementById('bridge-tbody').innerHTML = data.bridgeAccounts.slice(0, 15).map(r => `
+        <tr>
+          <td><code style="font-family:'JetBrains Mono',monospace;font-size:11.5px">${esc(truncate(r.account_id, 22))}</code></td>
+          <td class="text-cell">${esc(r.domains)}</td>
+          <td>${fmtN(r.n_merger_events)}</td>
+          <td>${r.ramp_up_days ?? '—'}</td>
+        </tr>`).join('');
+
+      document.getElementById('multi-tbody').innerHTML = data.multiNarrativeAccounts.slice(0, 15).map(r => `
+        <tr>
+          <td><code style="font-family:'JetBrains Mono',monospace;font-size:11.5px">${esc(truncate(r.account_id, 22))}</code></td>
+          <td>${r.n_narratives}</td>
+          <td>${fmtN(r.n_merger_events)}</td>
+          <td>${r.ramp_up_days ?? '—'}</td>
+        </tr>`).join('');
+
+      // ══ A5: proselytism in context ════════════════════════════════════════
+      const ztest = data.proselytismContext.ztest;
+      const a5Domains = ztest.map(r => r.domain);
+      new Chart(document.getElementById('chart-a5'), {
+        type: 'bar',
+        data: {
+          labels: a5Domains,
+          datasets: [
+            { label: 'Baseline (non-merger posts)', data: ztest.map(r => r.baseline_rate * 100), backgroundColor: hexToRgba('#8d8295', 0.55), borderRadius: 4 },
+            { label: 'Merger-event posts', data: ztest.map(r => r.merger_event_rate * 100), backgroundColor: hexToRgba('#6d28d9', 0.75), borderRadius: 4 },
+          ],
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12 } },
+            tooltip: { callbacks: { label: ctx => {
+              const r = ztest[ctx.dataIndex];
+              return `  ${ctx.dataset.label}: ${ctx.raw.toFixed(1)}% (n=${fmtN(ctx.datasetIndex === 0 ? r.n_baseline_posts : r.n_merger_event_posts)})`;
+            } } },
+          },
+          scales: {
+            y: { beginAtZero: true, max: 100, ticks: { font: { size: 10 }, callback: v => `${v}%` }, grid: { color: 'rgba(31,13,53,0.05)' }, title: { display: true, text: 'Proselytizing rate', font: { size: 10 } } },
+            x: { ticks: { font: { size: 11.5 } }, grid: { display: false } },
+          },
+        },
+      });
+      const allZ = ztest.find(r => r.domain === 'ALL');
+      if (allZ) {
+        document.getElementById('a5-sub').textContent =
+          `Overall: merger-event posts are proselytising ${fmtPct(allZ.merger_event_rate)} of the time vs. ${fmtPct(allZ.baseline_rate)} baseline ` +
+          `(z=${allZ.z}, p<0.0001, n=${fmtN(allZ.n_merger_event_posts)} merger posts, ${fmtN(allZ.n_baseline_posts)} baseline posts). The effect holds in every domain individually.`;
+      }
+
+      let chartA5Pcodes;
+      const a5Comparison = data.proselytismContext.comparison;
+      function renderA5Pcodes() {
+        const scope = document.getElementById('sel-a5-domain').value;
+        const baseline = a5Comparison.find(r => r.domain === scope && r.group === 'baseline_post_same_accounts');
+        const merger = a5Comparison.find(r => r.domain === scope && r.group === 'merger_event_post');
+        destroyIfExists(chartA5Pcodes);
+        if (!baseline || !merger) return;
+        chartA5Pcodes = new Chart(document.getElementById('chart-a5-pcodes'), {
+          type: 'bar',
+          data: {
+            labels: P_CODES,
+            datasets: [
+              { label: 'Baseline posts', data: P_CODES.map(p => baseline[`share_${p}_of_labeled`] * 100), backgroundColor: hexToRgba('#8d8295', 0.55), borderRadius: 4 },
+              { label: 'Merger-event posts', data: P_CODES.map(p => merger[`share_${p}_of_labeled`] * 100), backgroundColor: hexToRgba('#6d28d9', 0.75), borderRadius: 4 },
+            ],
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12 } },
+              tooltip: { callbacks: { label: ctx => `  ${ctx.dataset.label}: ${ctx.raw.toFixed(1)}%` } },
+            },
+            scales: {
+              y: { beginAtZero: true, ticks: { font: { size: 10 }, callback: v => `${v}%` }, grid: { color: 'rgba(31,13,53,0.05)' }, title: { display: true, text: 'Share of labeled posts', font: { size: 10 } } },
+              x: { ticks: { font: { size: 11.5 } }, grid: { display: false } },
+            },
+          },
+        });
+      }
+      document.getElementById('sel-a5-domain').addEventListener('change', renderA5Pcodes);
+      renderA5Pcodes();
+
+      // ══ Part B: simulator ═════════════════════════════════════════════════
+      document.getElementById('validation-tbody').innerHTML = data.simulator.validation.map(r => `
+        <tr>
+          <td><span class="badge" style="background:${hexToRgba(COLORS[r.domain],0.14)};color:${COLORS[r.domain]};border-color:${hexToRgba(COLORS[r.domain],0.35)}">${esc(r.domain)}</span></td>
+          <td>${fmtN(r.target_n_communities)} / ${r.sim_n_communities_per_run_mean}</td>
+          <td>${fmtPct(r.target_saturated_share)} / ${fmtPct(r.sim_saturated_share_mean)}</td>
+          <td>${fmtN(r.target_edges)} / ${r.sim_edges_mean}</td>
+          <td>${r.target_mean_edge_weight} / ${r.sim_mean_edge_weight}</td>
+          <td>${r.target_edge_weight_inflation_ratio_table4_vs_table3}× / ${r.sim_edge_weight_inflation_ratio}×</td>
+        </tr>`).join('');
+
+      // ══ Part C: early-warning indicators ═════════════════════════════════
+      const indicatorLabels = { structural_saturation: 'Structural saturation', bridge_emergence: 'Bridge-account emergence', narrative_novelty: 'Narrative novelty', proselytism_shift: 'Proselytism shift' };
+      document.getElementById('indicator-grid').innerHTML = data.earlyWarning.summary.map(r => `
+        <div class="indicator-card">
+          <div class="indicator-name">${indicatorLabels[r.indicator] || r.indicator}</div>
+          <div class="indicator-metric"><span class="indicator-metric-lbl">Recall</span><span class="indicator-metric-val">${fmtPct(r.recall)}</span></div>
+          <div class="indicator-metric"><span class="indicator-metric-lbl">Precision</span><span class="indicator-metric-val">${fmtPct(r.precision)}</span></div>
+          <div class="indicator-metric"><span class="indicator-metric-lbl">Median lead time</span><span class="indicator-metric-val">${r.median_lead_time_days}d</span></div>
+          <div class="indicator-metric"><span class="indicator-metric-lbl">Flagged weeks</span><span class="indicator-metric-val">${r.n_flagged_weeks}</span></div>
+        </div>`).join('');
+
+      document.getElementById('year').textContent = new Date().getFullYear();
+      const loading = document.getElementById('loading');
+      loading.classList.add('hidden');
+      setTimeout(() => loading.remove(), 400);
+    })();
+    </script>
+  </body>
+</html>

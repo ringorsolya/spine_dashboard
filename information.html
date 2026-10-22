@@ -1,0 +1,681 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Information — AgendaZ SPINE</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <meta name="theme-color" content="#f8f3e9" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      .info-hero { padding: 56px 0 40px; }
+
+      .info-section {
+        max-width: var(--max);
+        margin: 0 auto;
+        padding: 0 24px 80px;
+      }
+      .info-section-title {
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--ink);
+        margin: 0 0 6px;
+      }
+      .info-section-sub {
+        font-size: 14px;
+        color: var(--ink-dim);
+        margin: 0 0 28px;
+        max-width: 680px;
+      }
+
+      /* ── Topic tab pills ──────────────────────────────────────────────────── */
+      .cb-tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 24px;
+      }
+      .cb-tab {
+        padding: 6px 16px;
+        border-radius: 999px;
+        border: 1.5px solid var(--border-strong);
+        background: transparent;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.14s;
+        color: var(--ink-dim);
+        letter-spacing: 0.02em;
+      }
+      .cb-tab.is-active {
+        color: #fff;
+        border-color: transparent;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+      }
+
+      /* ── Codebook card ────────────────────────────────────────────────────── */
+      .cb-card {
+        background: var(--paper, #fff);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+      }
+      .cb-card-header {
+        padding: 14px 20px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: var(--bg);
+      }
+      .cb-card-dot {
+        width: 10px; height: 10px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+      .cb-card-title {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--ink);
+      }
+      .cb-card-count {
+        font-size: 11px;
+        font-family: 'JetBrains Mono', monospace;
+        color: var(--ink-faint);
+        margin-left: auto;
+      }
+
+      /* ── Codebook table ───────────────────────────────────────────────────── */
+      .cb-wrap { overflow-x: auto; }
+      .cb-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+      .cb-table th {
+        text-align: left;
+        padding: 10px 14px;
+        color: var(--ink-faint);
+        font-weight: 500;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        border-bottom: 2px solid var(--border);
+        background: var(--bg);
+        white-space: nowrap;
+      }
+      .cb-table td {
+        padding: 13px 14px;
+        border-bottom: 1px solid var(--border);
+        vertical-align: top;
+        color: var(--ink);
+        line-height: 1.55;
+      }
+      .cb-table tr:last-child td { border-bottom: none; }
+      .cb-table tr.row-none td { opacity: 0.45; }
+
+      .cb-code {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 12px;
+        font-weight: 700;
+        white-space: nowrap;
+        padding: 2px 6px;
+        border-radius: 4px;
+        display: inline-block;
+      }
+      .cb-frame {
+        font-weight: 600;
+        font-size: 13px;
+        min-width: 160px;
+        max-width: 220px;
+      }
+      .cb-desc {
+        font-size: 12.5px;
+        color: var(--ink-dim);
+        line-height: 1.65;
+        min-width: 280px;
+        max-width: 560px;
+      }
+      .cb-tags {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        min-width: 160px;
+        max-width: 280px;
+      }
+      .cb-tag {
+        display: inline-block;
+        padding: 3px 9px;
+        border-radius: 5px;
+        font-size: 11px;
+        line-height: 1.5;
+        border: 1px solid transparent;
+      }
+      .cb-phrase {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-family: 'JetBrains Mono', monospace;
+        line-height: 1.5;
+        background: rgba(31,13,53,0.06);
+        color: var(--ink);
+        border: 1px solid var(--border-strong);
+      }
+      .cb-phrases-inline {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        min-width: 200px;
+        max-width: 380px;
+      }
+
+      .cb-section-label {
+        font-size: 13px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        color: var(--ink-faint);
+        margin: 0 0 16px;
+      }
+
+      @media (max-width: 720px) {
+        .cb-table th:nth-child(4),
+        .cb-table td:nth-child(4) { display: none; }
+        .cb-frame { min-width: 120px; }
+        .cb-desc  { min-width: 180px; }
+      }
+    </style>
+      <script src="spine-config.js"></script>
+    <script src="spine-data.js"></script>
+  </head>
+  <body>
+    <header class="nav">
+      <a href="index.html" class="logo" aria-label="AgendaZ home">
+        <img src="favicon.svg" class="logo-mark" alt="" aria-hidden="true" width="30" height="30" />
+        <span class="logo-text"><span class="logo-prefix">Agenda</span><span class="logo-suffix">Z SPINE</span></span>
+      </a>
+      <nav class="nav-links" aria-label="Main">
+        <a href="index.html">Home</a>
+        <a href="data-explorer.html">Data Explorer</a>
+        <a href="statistics.html">Statistics</a>
+        <a href="networks.html">Networks</a>
+        <a href="communities.html">Communities</a>
+        <a href="proselytism.html">Proselytism</a>
+        <a href="narrative-conflation.html">Narrative Conflation</a>
+        <a href="latent-dynamics.html">Latent Dynamics</a>
+        <a href="information.html">Information</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="page-hero info-hero">
+        <div class="page-hero-bg network" aria-hidden="true"></div>
+        <div class="page-hero-content">
+          <span class="section-label">Reference material</span>
+          <h1>Information</h1>
+          <p class="lead">
+            Annotation guidelines and codebooks used to label posts across all topic domains in the AgendaZ SPINE dataset.
+          </p>
+        </div>
+      </section>
+
+      <div class="info-section" style="padding-top:52px">
+        <h2 class="info-section-title">Codebooks</h2>
+        <p class="info-section-sub">
+          Select a topic to view its illiberal frame codebook. Each code covers a distinct framing strategy with a description and, where applicable, associated narrative labels. The Proselytism rhetorical technique codebook is shown separately below.
+        </p>
+
+        <h3 class="cb-section-label">Illiberal Frame Codebooks</h3>
+        <div class="cb-tabs" id="cb-tabs"></div>
+        <div id="cb-display"></div>
+
+        <h3 class="cb-section-label" style="margin-top:52px">Proselytism Rhetorical Technique Codebook</h3>
+        <p class="info-section-sub" style="margin-bottom:20px">
+          Cross-cutting rhetorical techniques used to spread illiberal frames. These labels are assigned independently of topic domain.
+        </p>
+        <div id="cb-proselytism"></div>
+      </div>
+    </main>
+
+    <script>
+    (function () {
+      function esc(s) {
+        return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+      }
+
+      function hexToRgba(hex, a) {
+        const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+        return `rgba(${r},${g},${b},${a})`;
+      }
+
+      const CODEBOOKS = [
+        {
+          key: 'lgbtq', title: 'LGBTQ', color: '#ec4899',
+          hasNarratives: true,
+          rows: [
+            { code: '201', frame: 'Rainbow Agenda',
+              desc: `An imagined 'gender ideology' is dominating Western liberal democracies, being a political tool that endangers societal norms. Perceived promotion of LGBTQ+ lifestyles, claims about unfairly favoured LGBTQ+ sportspersons, an imagined totalitarian LGBTQ+ regime, or assumptions about secretly transgender public figures belong to this category. The West is using LGBTQ rights and inclusion as a tool of cultural colonialism, trying to force its corrupt values onto the rest of the world.`,
+              narratives: [`An imagined 'gender ideology' is dominating Western liberal democracies.`, `The West is using LGBTQ rights and inclusion as a tool of cultural colonialism, trying to force its corrupt values onto the rest of the world.`]
+            },
+            { code: '202', frame: 'Child Safety Threat',
+              desc: `LGBTQIA+ community and gender ideology is a threat to child safety. Claims regarding sex education being "indoctrination", "inappropriate exposure to adult themes" or "sexualisation", the fear of "predatory/pedophilic LGBTQ+ people", or alleging that a same-sex parent environment bears negative consequences on the development of children should be coded here.`,
+              narratives: [`LGBTQIA+ community is a threat to child safety.`]
+            },
+            { code: '203', frame: 'Moral Corruption',
+              desc: `LGBTQIA+ has a corrupting influence on morally 'pure' societies. Gender ideology is the starting point for civilizational demise. The 'natural family structure'/'natural order' need to be protected. Critiques regarding the use of gender-neutral vocabulary (e.g. 'parent 1' and 'parent 2'); sentences claiming that homosexual, transsexual or transgender people are inherently perverse, excessive, wicked, maybe outright dangerous and violent or are a moral abomination; or texts regarding an imagined globalist anti-traditional and anti-Christian movement behind the LGBTQ+ community should be coded here.`,
+              narratives: [`LGBTQIA+ has a corrupting influence on morally 'pure' societies.`]
+            },
+            { code: '204', frame: 'Public Health Hazard',
+              desc: `LGBTQIA+ identities are a public health hazard. LGBTQ people are mentally ill, and they are more prone to diseases. Sentences that frame LGBTQIA+ as an illness to be cured, contained, or countered; suggesting that people with these identities are able to infect others with them; claiming that LGBTQIA+ people are zoophiles (especially in relation to diseases or infections) should be coded here.`,
+              narratives: [`LGBTQIA+ identities are a public health hazard.`]
+            },
+            { code: '205', frame: 'Traditional Gender Roles',
+              desc: `Biological differences determine male and female roles. Traditional gender roles are natural and unchangeable. The nuclear family is the ideal structure. Gender theory weakens men and leads to a feminized, weak society. Strong nations need strong, masculine citizens rooted in traditional values.`,
+              narratives: [`The 'natural family structure'/'natural order' need to be protected.`]
+            },
+            { code: '299', frame: 'None of them', isNone: true,
+              desc: `None of the above illiberal LGBTQ-related frames are present.`,
+              narratives: [`None of them`]
+            },
+          ]
+        },
+        {
+          key: 'ukraine', title: 'Ukraine War', color: '#3b82f6',
+          hasNarratives: true,
+          rows: [
+            { code: '1601', frame: 'NATO/Western Military Intervention and Geopolitical Meddling',
+              desc: `Ukraine is a platform for the West in its geopolitical fight against Russia, which is escalating into a world war.`,
+              narratives: [`Ukraine is a platform for the West in its geopolitical fight against Russia, which is escalating into a world war.`]
+            },
+            { code: '1602', frame: 'Economic Impact and Resource Exploitation',
+              desc: `The EU's financial and economic support for Ukraine is damaging national economies. The conflict comes at the expense of domestic welfare: sanctions and refugee flows have an economic and social impact; domestic resources are diverted to Ukraine, and Ukraine's resources are exploited.`,
+              narratives: [`The conflict comes at the expense of domestic welfare: Sanctions and refugees flows have an economic and social impact; domestic resources are diverted to Ukraine, and Ukraine's resources are exploited.`, `The EU's financial and economic support for Ukraine is damaging national economies.`]
+            },
+            { code: '1603', frame: 'Illegitimate and Corrupt Ukrainian Leadership',
+              desc: `Ukraine's government lacks legitimacy: Zelensky and his clique are installing a corrupt and incompetent dictatorship in a failed state.`,
+              narratives: [`Ukraine's government lacks legitimacy: Zelensky and his clique are installing a corrupt and incompetent dictatorship in a failed state.`]
+            },
+            { code: '1604', frame: 'Ukraine/Nazi Allegations and Fascism',
+              desc: `Ukraine or its government is ideologically aligned with or directly supporting Nazi principles. Russia is legitimate in denazifying Ukraine.`,
+              narratives: [`Ukraine or its government is ideologically aligned with or directly supporting Nazi principles. Russia is legitimate in denazifying Ukraine.`]
+            },
+            { code: '1605', frame: 'Russian Defense and Ukrainian Threat as War-mongerers',
+              desc: `Russia seeks peace and has a moral obligation to defend itself and stabilise its neighbourhood. Ukraine and Ukrainians (including refugees) are aggressive war-mongerers or terrorists and pose a threat to European and global security.`,
+              narratives: [`Russia seeks peace and has a moral obligation to defend itself and stabilise its neighbourhood.`]
+            },
+            { code: '1606', frame: 'Historical Grievances and Defense of Traditional Values',
+              desc: `Russia is defending itself against perceived cultural or ideological threats to traditional values or Russian identity.`,
+              narratives: [`Russia is defending itself against perceived cultural or ideological threats to traditional values or Russian identity.`]
+            },
+            { code: '1607', frame: 'Western Propaganda and False Narratives',
+              desc: `Allegations of war crimes, civilian suffering are outcomes of Western-led influence or propaganda. EU institutions and Western democracies are inefficient compared to authoritarian regimes.`,
+              narratives: [`Allegations of war crimes, civilian suffering are outcomes of Western-led influence or propaganda.`]
+            },
+            { code: '1699', frame: 'None of them', isNone: true,
+              desc: `None of the above illiberal Ukraine war-related frames are present.`,
+              narratives: [`None of them`]
+            },
+          ]
+        },
+        {
+          key: 'eu_elections', title: 'EU Elections', color: '#f59e0b',
+          hasNarratives: true,
+          rows: [
+            { code: '1901', frame: 'Illegitimate and corrupt EU institutions',
+              desc: `EU institutions are portrayed as fundamentally illegitimate, corrupt, unaccountable, or controlled by hidden interests. Claims that the European Commission, European Parliament, or other EU bodies abuse their power, ignore citizens, impose policies without democratic legitimacy, or are controlled by globalist elites, lobbyists, or foreign actors should be coded here. Narratives depicting the EU as a dictatorship, bureaucracy detached from ordinary people, or an anti-democratic elite belong to this category.`,
+              narratives: [`EU institutions are illegitimate and corrupt.`]
+            },
+            { code: '1902', frame: 'Threat to national sovereignty',
+              desc: `The EU is portrayed as undermining the sovereignty, independence, or constitutional order of member states. Claims that the EU forces countries to adopt unwanted laws, interferes in domestic affairs, erodes national identity, or replaces national decision-making with supranational control should be coded here. Narratives emphasising the need to "take back control" or defend national self-determination against Brussels belong to this category.`,
+              narratives: [`The EU poses a risk to the sovereignty of European nations by challenging their political and national autonomy.`]
+            },
+            { code: '1903', frame: 'Rigged or invalid EU/European national and local elections',
+              desc: `Elections to the European Parliament or elections within European countries are portrayed as manipulated, fraudulent, or fundamentally illegitimate. Claims of electoral fraud, vote-rigging, censorship affecting electoral outcomes, foreign interference, manipulation by EU institutions, media, or political elites, or assertions that election results do not reflect the will of the people should be coded here.`,
+              narratives: [`EU/European national and local elections are rigged or invalid.`]
+            },
+            { code: '1904', frame: 'Immigrant policies with harmful consequences',
+              desc: `EU migration and asylum policies are portrayed as enabling uncontrolled immigration with harmful consequences for European societies. Claims that immigrants threaten public safety, national identity, economic prosperity, social cohesion, or cultural traditions; that migration is deliberately encouraged by EU elites to replace native populations; or that immigrants receive unfair privileges over citizens should be coded here.`,
+              narratives: [`Immigrants are seizing power in the EU/immigration has negative economic/social/cultural/security consequences.`]
+            },
+            { code: '1905', frame: 'Unefficient and harmful environmental policies and green agenda',
+              desc: `EU climate and environmental policies are portrayed as ineffective, economically destructive, or ideologically motivated. Claims that the European Green Deal, climate regulations, emissions targets, or environmental standards harm industry, agriculture, employment, public health, energy security, or living standards while producing little environmental benefit should be coded here. Narratives depicting climate policy as an elitist or globalist project also belong to this category.`,
+              narratives: [`The EU's environmental policies and green agenda are inefficient and pointless, with negative consequences for the domestic economy, society, and public health.`]
+            },
+            { code: '1906', frame: 'Neocolonialism and oppression of developing and emerging countries',
+              desc: `The EU is portrayed as exploiting, controlling, or imposing its political, economic, or cultural values on developing and emerging countries. Claims that EU trade, development, environmental, or human rights policies constitute neocolonialism; that the EU extracts resources, limits development, or interferes in the sovereignty of non-European countries should be coded here.`,
+              narratives: [`The EU is a neocolonial project oppressing developing and emerging countries.`]
+            },
+            { code: '1907', frame: 'Inefficient system compared to authoritarian regimes',
+              desc: `Liberal democracy and EU governance are portrayed as weak, dysfunctional, or incapable of addressing crises, while authoritarian political systems are presented as more efficient, stable, or effective. Claims praising strong leaders or centralized governance in contrast to EU bureaucracy, democratic procedures, or pluralism should be coded here. Comparisons favouring countries such as Russia or China over the EU belong to this category.`,
+              narratives: [`EU institutions and Western democracies are inefficient compared to authoritarian regimes.`]
+            },
+            { code: '1999', frame: 'None of them', isNone: true,
+              desc: `None of the above illiberal EU election-related frames are present.`,
+              narratives: [`None of them`]
+            },
+          ]
+        },
+        {
+          key: 'public_health', title: 'Public Health', color: '#f97316',
+          hasNarratives: false,
+          rows: [
+            { code: '310', frame: 'Scepticism: COVID is not deadly',
+              desc: `This frame depicts the severity of the public health emergency as exaggerated by political leaders and experts. It attributes malicious intent (e.g., power grab), over-cautiousness, and/or incompetence to representations of the public health situation as extraordinary, critical, serious, and/or crisis-like. Portrayals of health policy experts and scientific advisors as untrustworthy, unreliable, out of touch with reality or similar belong to this category. In contrast with the elite control frame, the threat scepticism frame questions whether the spreading illness is truly a problem.`
+            },
+            { code: '311', frame: 'Great reset and tool of elite control',
+              desc: `This frame depicts the public health emergency as the result of a deliberate ploy by political/social/economic elites to control society. It criticises social monitoring and surveillance methods (e.g., tracking movement via a phone app) and suggests that restrictions are used to take away personal freedoms. This frame depicts the public health crisis as a tool to reshape the world order; it may connect the spreading of the illness to biological warfare by foreign states. The use of terminology which links the illness to specific states (e.g., 'Chinese virus,' 'Wuhan virus') belongs to this category. It includes statements blaming globalisation, international organisations, open borders, and foreign customs for the public health crisis and its negative consequences.`
+            },
+            { code: '312', frame: 'Economic effect: Closures are undermining the economy',
+              desc: `This frame depicts government restrictions to tackle the public health crisis as destroying small businesses and undermining the proper functioning of the economy; thus (in)directly resulting in more significant social harm. It criticises government proposals and action for leading to further indebtedness, causing high inflation, hurting economic growth and compromising competitiveness. Criticisms of social distancing, vaccination and mask mandates as hindering the functioning of small and medium-sized enterprises belong to this category.`
+            },
+            { code: '313', frame: 'Medical choices should be private',
+              desc: `This frame depicts government measures (e.g., obligatory vaccination, mask-wearing, social distancing, obligatory testing to attend social events) to tackle the public health crisis as infringing on personal freedoms and/or human rights. It advocates for health privacy and unrestricted medical choice, including the option not to medicate. Citing conspiracy theories (e.g., vaccines are used to inject chips) or casting medication as more dangerous than the illness to justify opposition also belong to this category.`
+            },
+            { code: '314', frame: 'Media fabrications',
+              desc: `This frame depicts the media and journalists as servants of the elites and complicit in public health-related fearmongering. It casts media coverage of the public health crisis as biased and hiding the truth to spread fear and ensure social compliance with government orders. In contrast with the threat scepticism frame, the truth frame focuses on the media and public intellectuals, not on politicians or experts.`
+            },
+            { code: '315', frame: 'Threatening way of life',
+              desc: `This frame depicts government restrictions to tackle the public health situation as threatening the way of life of society. They are portrayed as weakening social bonds, undermining families, compromising social and religious traditions, and destroying tight-knit communities. It argues that public health measures lead to irreversible and/or negative social changes, such as a severe increase in loneliness, depression, suicide, the de-population of local churches and congregations, and the closure of schools, community centres, theatres, cinemas, clubs, and other venues of social interaction.`
+            },
+            { code: '399', frame: 'None of them', isNone: true,
+              desc: `None of the above public health-related frames are present.`
+            },
+          ]
+        },
+        {
+          key: 'migration', title: 'Migration', color: '#10b981',
+          hasNarratives: false,
+          rows: [
+            { code: '901', frame: 'Culture under attack',
+              desc: `This frame depicts immigration negatively as changing the social, cultural, religious, and demographic makeup of society. References to the 'Great Replacement,' 'white genocide,' 'Islamisation,' 'Arabisation' and similar conspiracy theories and processes belong to this category.`
+            },
+            { code: '902', frame: 'Economic burden',
+              desc: `This frame depicts migrants as representing increased competition on the labour and housing markets. Policy proposals advocating for harsh conditions for immigrants to work belong to this category. The term 'economic migrant' or 'economic refugee' should be coded here.`
+            },
+            { code: '903', frame: 'Illegals and fraudsters',
+              desc: `This frame depicts migrants as illegal and/or unlawful. Obtaining status through criminal activity, such as corruption and document forgery, or lies also belong to this category. Statements demanding differentiation between legal and illegal immigration should NOT be coded in this category.`
+            },
+            { code: '904', frame: 'Extradition necessity',
+              desc: `This frame depicts strong state action as the desirable way to address migration-related issues. Calls for and positive appraisals of policies granting new powers and resources to authorities, establishing strict border control procedures, building walls/fences, returning immigrants, and creating external hotspots belong to this category. Supporting keeping migrants in extraterritorial camps, demanding zero tolerance for migration, and advocating for time-limited refugee status and deportation also belong to this category.`
+            },
+            { code: '905', frame: 'Nation state should decide',
+              desc: `This frame depicts migration as posing a threat to national sovereignty and/or state authority. Negative appraisals of and opposition to the activities and plans of supranational (e.g., UN, EU) and subnational organisations (e.g., NGOs, media providing migrants with info on how to circumvent controls) belong in this category.`
+            },
+            { code: '906', frame: 'Administrative burden',
+              desc: `This frame depicts immigrants as burdening the state/local administrations, usually in the context of high workloads and increased fiscal costs. Decrease in available funding due to the financing needs of migrants also belong to this category.`
+            },
+            { code: '907', frame: 'General system failure',
+              desc: `This frame describes migration or migration policy as a problem or challenge to be tackled. Instances when the speaker decries someone for not believing that migration is an issue, problem, or challenge also belong here. The category also includes general opposition to or fighting against migration. This category should generally only be used if the text does NOT refer to what kind of problem or challenge migration poses; otherwise it should be coded according to the relevant specific category.`
+            },
+            { code: '908', frame: 'Security threat',
+              desc: `This frame depicts migrants and their supporters as hostile or the enemy, and frames migrants as representing a threat to the physical safety and security of society. It associates the "invading" migrants with terrorism, drug trafficking, human trafficking, or organised crimes threatening national security.`
+            },
+            { code: '909', frame: 'Criminals',
+              desc: `This frame depicts migrants as representing a threat to the physical safety and security of society. It associates migrants with all kinds of physical abuse and crime, such as murder, rape, fighting, terrorism, drug trafficking, human trafficking, and robbery, creating an atmosphere of suspicion and prejudice. Linkages between migration and the spread of illnesses (biosecurity) also belong to this category.`
+            },
+            { code: '910', frame: 'Welfare state overload',
+              desc: `This frame depicts immigrants as a burden on the welfare system, usually in the context of abusing social benefits without working for them. Complaints about migrants using social services without paying taxes belong here. Proposals advocating for foreigners' restricted access to social benefits also belong to this category.`
+            },
+            { code: '999', frame: 'None of them', isNone: true,
+              desc: `None of the above migration-related frames are present.`
+            },
+          ]
+        },
+        {
+          key: 'climate', title: 'Climate', color: '#22c55e',
+          hasNarratives: false,
+          rows: [
+            { code: '710', frame: 'Threatening economic growth',
+              desc: `This label applies to arguments that claim climate policies are either ineffective or harmful to the economy. It includes claims that green taxes, regulations, or sustainability policies slow economic growth, kill jobs, or hurt national industries. It also covers arguments that market forces or technology alone can address climate change, making government intervention unnecessary or even damaging.`
+            },
+            { code: '720', frame: 'Threatening national sovereignty',
+              desc: `This frame portrays climate change agreements as undermining national independence and imposing globalist rule. It suggests that international policies prioritize elite agendas over the interests of ordinary citizens. Climate regulations are depicted as being crafted by distant, unelected bureaucrats with little concern for national needs.`
+            },
+            { code: '721', frame: 'Climate conspiracy',
+              desc: `Frames national climate action as a Trojan horse for government overreach, taxation, and redistribution of wealth. (A "watermelon" argument — green on the outside, red inside.)`
+            },
+            { code: '722', frame: 'Scientific scepticism and denial',
+              desc: `Challenges the legitimacy of climate science by questioning the reliability of models, data, and the broader scientific consensus. It may reject climate change outright, argue that its impacts are exaggerated, or claim that it is a natural phenomenon unrelated to human activity. Some narratives downplay the severity of climate change, suggesting it is either beneficial or less urgent than other global issues.`
+            },
+            { code: '723', frame: 'Climate movement bashing',
+              desc: `This frame criticises climate scientists, activists, or organisations. Claims focusing on these entities' unreliability, incompetence, or ideology should be coded in this category. This framing often positions climate alarmism as politically motivated rather than based on objective science, emphasising that climate concern is a religion, or that politicians are biased.`
+            },
+            { code: '724', frame: 'Other polluters as the real problem',
+              desc: `Deflects responsibility by arguing that Western climate action is pointless because major polluters like China and Russia continue to emit at high levels.`
+            },
+            { code: '730', frame: 'Threatening energy security',
+              desc: `This frame argues that climate policies, particularly those aimed at reducing fossil fuel use, compromise national energy security. It suggests that transitioning to renewable energy makes countries vulnerable to blackouts, energy shortages, or dependence on foreign energy sources. Critics claim that green energy is unreliable, cannot meet national demand, and leads to higher energy prices that disproportionately hurt ordinary citizens.`
+            },
+            { code: '740', frame: 'Threatening way of life',
+              desc: `Policies have a (larger) negative cultural effect than climate change itself.`
+            },
+            { code: '799', frame: 'None of them', isNone: true,
+              desc: `None of the above climate-related frames are present.`
+            },
+          ]
+        },
+        {
+          key: 'inequality', title: 'Inequality', color: '#8b5cf6',
+          hasNarratives: false,
+          rows: [
+            { code: '1301', frame: 'Welfare chauvinism',
+              desc: `Benefits should be reserved for members of the national in-group, as outsiders are perceived as less deserving of public support. Immigrants and minority groups are often depicted as exploiting the welfare system, threatening social cohesion, and undermining the contributions of the native population.`
+            },
+            { code: '1302', frame: 'Security hazard',
+              desc: `People in poverty and/or homeless people are portrayed as dangerous or unhygienic. Poor neighbourhoods are depicted as chaotic, unsafe, and threatening social stability.`
+            },
+            { code: '1303', frame: 'Immorality',
+              desc: `Beneficiaries are in a disadvantaged financial situation due to their own fault; they are unable to manage money and squander the assistance they receive. Their lack of employment is attributed to their reliance on benefits or simple laziness. They abuse social benefits, or only have children to gain them.`
+            },
+            { code: '1304', frame: 'Economic burden',
+              desc: `Social welfare benefits have adverse effects on the economy as a whole; they impede development and lead to inefficient allocation. The welfare system is oversaturated and austerity is presented as a necessary remedy.`
+            },
+            { code: '1305', frame: 'Economic determinism',
+              desc: `Inequalities arise from the inherent nature of the market and are a natural phenomenon; therefore there is no need to counteract them. Meritocracy is invoked to justify unequal outcomes.`
+            },
+            { code: '1306', frame: 'Workfare',
+              desc: `People should be given jobs instead of aid. Work should pay more than social benefits, and benefits should be conditional on working.`
+            },
+            { code: '1399', frame: 'None of them', isNone: true,
+              desc: `None of the above inequality-related frames are present.`
+            },
+          ]
+        },
+        {
+          key: 'corruption', title: 'Corruption', color: '#a855f7',
+          hasNarratives: false,
+          rows: [
+            { code: '2001', frame: 'Deep State and Shadow Elite',
+              desc: `Framing of unelected bureaucrats, intelligence services, or technocratic networks as a hidden, self-serving power operating against the will of the people. Includes "drain the swamp" rhetoric.`
+            },
+            { code: '2002', frame: 'Corrupt Judiciary and Rule of Law Capture',
+              desc: `Claims that courts, prosecutors, or legal institutions are politically captured by the opposition or globalist elite, used to persecute the "real" representatives of the people.`
+            },
+            { code: '2003', frame: 'Media as Propaganda Tool of the Elite',
+              desc: `Portrayal of mainstream media as corrupt, bought, or controlled by oligarchs or foreign interests — spreading disinformation to protect the corrupt establishment.`
+            },
+            { code: '2004', frame: 'Economic Oligarchy and Crony Capitalism',
+              desc: `Framing of economic elites as having captured state resources through corrupt deals, revolving doors, or anti-competitive collusion at the expense of ordinary citizens.`
+            },
+            { code: '2005', frame: 'Moral Corruption of the Political Class',
+              desc: `Casting political opponents as personally depraved — through sex scandals, financial misconduct, hypocrisy — as evidence of systemic moral rot of the establishment.`
+            },
+            { code: '2099', frame: 'None of them', isNone: true,
+              desc: `None of the above corruption-related frames are present.`
+            },
+          ]
+        },
+        {
+          key: 'security', title: 'Security', color: '#ef4444',
+          hasNarratives: false,
+          rows: [
+            { code: '1201', frame: 'Criminal Crisis and Social Breakdown',
+              desc: `Framing of crime rates or public disorder as a civilizational emergency caused by liberal permissiveness, weak elites, or moral decay — requiring exceptional punitive measures.`
+            },
+            { code: '1202', frame: 'Soft Justice Favouring Criminals over Victims',
+              desc: `Penal populist claim that the criminal justice system coddles offenders at the expense of victims and the law-abiding majority; elites are portrayed as prioritising criminals' rights over those of victims.`
+            },
+            { code: '1203', frame: 'Foreign/Migrant Crime Threat',
+              desc: `Specific attribution of criminal danger to foreigners, migrants, or ethnic minorities — often overlapping with criminal crisis but here the primary frame is law-and-order rather than immigration policy.`
+            },
+            { code: '1204', frame: 'Terrorist and Extremist Infiltration',
+              desc: `Framing of domestic or international terrorist threats as enabled by globalist elites, open borders, or political correctness — only strong national leadership can protect citizens.`
+            },
+            { code: '1205', frame: 'Surveillance and Security State as Protection',
+              desc: `Positive framing of expanded police powers, surveillance, or emergency law as necessary and legitimate protections of the "ordinary people," dismissing civil liberties concerns as elite luxuries.`
+            },
+            { code: '1299', frame: 'None of them', isNone: true,
+              desc: `None of the above security-related frames are present.`
+            },
+          ]
+        },
+      ];
+
+      const PROSELYTISM_CB = {
+        color: '#7c3aed',
+        rows: [
+          { code: 'P1', frame: 'Threat inflation',
+            desc: `The author presents a threat as existential, imminent, and certain, leaving no room for proportionality or doubt.`,
+            phrases: [`"if we don't act now"`, `"it's already too late"`, `"they are coming for our children"`, `superlatives (the greatest threat, total destruction)`, `catastrophizing conditionals`]
+          },
+          { code: 'P2', frame: 'Us vs. them',
+            desc: `The author constructs a morally superior in-group (the awakened, the patriots, the faithful) against a corrupt, dangerous out-group, and frames the reader's acceptance of the claim as group membership.`,
+            phrases: [`"we"`, `"our people"`, `"real [nationals]"`, `"they want you to believe"`, `direct reader address (you know the truth)`, `epithets for the out-group (globalists, gender ideologues, Nazis, elites)`]
+          },
+          { code: 'P3', frame: 'Counter-evidence rejection',
+            desc: `The author does not just make a claim but also delegitimizes any possible counter-evidence in advance, creating an unfalsifiable frame.`,
+            phrases: [`"the mainstream media won't tell you this"`, `"so-called experts"`, `"that's exactly what they want you to think"`, `"wake up"`, `scare quotes around official framings (the 'official' version, 'democracy')`]
+          },
+          { code: 'P4', frame: 'Moral urgency to act and spread',
+            desc: `The author frames accepting and spreading the belief as a moral obligation, not a personal choice. Silence or inaction is framed as complicity.`,
+            phrases: [`"share this before they delete it"`, `"if you don't speak up you're part of the problem"`, `"your silence is consent"`, `imperative voice`, `explicit calls to share/forward/wake others up`]
+          },
+          { code: 'P5', frame: 'Appeal to divine order',
+            desc: `The claim is grounded not in evidence but in an appeal to nature, tradition, God, or self-evident "common sense" that forecloses argument.`,
+            phrases: [`"it's just common sense"`, `"natural order"`, `"God's design"`, `"since the beginning of time"`, `"every civilization knows"`, `tautological framing (a man is a man)`]
+          },
+          { code: 'P6', frame: 'Purity vs. contamination',
+            desc: `The author uses metaphors of pollution, infection, corruption, or invasion to describe ideological threat, implying that contact with the out-group idea is itself dangerous.`,
+            phrases: [`"corrupting our children/society"`, `"poison"`, `"infection"`, `"infiltration"`, `"pure"`, `"clean"`, `"before it spreads"`]
+          },
+          { code: 'P7', frame: 'False revelation',
+            desc: `The author positions themselves as someone who has discovered or been granted access to suppressed truth, and offers the reader initiation into this knowledge.`,
+            phrases: [`"the truth is"`, `"what they don't want you to know"`, `"I'll tell you what's really happening"`, `"open your eyes"`, `"research it yourself" (as a rhetorical move, not a genuine invitation)`]
+          },
+        ]
+      };
+
+      let activeKey = CODEBOOKS[0].key;
+
+      function renderTabs() {
+        const container = document.getElementById('cb-tabs');
+        container.innerHTML = CODEBOOKS.map(cb =>
+          `<button class="cb-tab${cb.key === activeKey ? ' is-active' : ''}"
+                   data-key="${cb.key}"
+                   style="${cb.key === activeKey ? `background:${cb.color}` : ''}">
+            ${esc(cb.title)}
+          </button>`
+        ).join('');
+        container.querySelectorAll('.cb-tab').forEach(btn => {
+          btn.addEventListener('click', () => {
+            activeKey = btn.dataset.key;
+            renderTabs();
+            renderCodebook();
+          });
+        });
+      }
+
+      function renderCodebook() {
+        const cb = CODEBOOKS.find(c => c.key === activeKey);
+        if (!cb) return;
+
+        const nonNoneCount = cb.rows.filter(r => !r.isNone).length;
+        const rows = cb.rows.map(row => {
+          let extraCell = '';
+          if (cb.hasNarratives) {
+            extraCell = row.narratives
+              ? `<td><div class="cb-tags">${row.narratives.map(n =>
+                  `<span class="cb-tag" style="background:${hexToRgba(cb.color,0.10)};color:${cb.color};border-color:${hexToRgba(cb.color,0.25)}">${esc(n)}</span>`
+                ).join('')}</div></td>`
+              : `<td></td>`;
+          }
+          return `<tr${row.isNone ? ' class="row-none"' : ''}>
+            <td><span class="cb-code" style="background:${hexToRgba(cb.color,0.12)};color:${cb.color}">${esc(row.code)}</span></td>
+            <td><div class="cb-frame">${esc(row.frame)}</div></td>
+            <td><div class="cb-desc">${esc(row.desc)}</div></td>
+            ${extraCell}
+          </tr>`;
+        }).join('');
+
+        document.getElementById('cb-display').innerHTML = `
+          <div class="cb-card">
+            <div class="cb-card-header">
+              <div class="cb-card-dot" style="background:${cb.color}"></div>
+              <div class="cb-card-title">${esc(cb.title)} Codebook</div>
+              <div class="cb-card-count">${nonNoneCount} frame${nonNoneCount !== 1 ? 's' : ''}</div>
+            </div>
+            <div class="cb-wrap">
+              <table class="cb-table">
+                <thead>
+                  <tr>
+                    <th>Code</th>
+                    <th>Frame</th>
+                    <th>Description</th>
+                    ${cb.hasNarratives ? `<th>Related narratives</th>` : ''}
+                  </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+              </table>
+            </div>
+          </div>`;
+      }
+
+      function renderProselytism() {
+        const cb = PROSELYTISM_CB;
+        const rows = cb.rows.map(row => {
+          const phrasesHtml = (row.phrases || []).map(p =>
+            `<span class="cb-phrase">${esc(p)}</span>`
+          ).join(' ');
+          return `<tr>
+            <td><span class="cb-code" style="background:${hexToRgba(cb.color,0.12)};color:${cb.color}">${esc(row.code)}</span></td>
+            <td><div class="cb-frame">${esc(row.frame)}</div></td>
+            <td><div class="cb-desc">${esc(row.desc)}</div></td>
+            <td><div class="cb-phrases-inline">${phrasesHtml}</div></td>
+          </tr>`;
+        }).join('');
+
+        document.getElementById('cb-proselytism').innerHTML = `
+          <div class="cb-card">
+            <div class="cb-card-header">
+              <div class="cb-card-dot" style="background:${cb.color}"></div>
+              <div class="cb-card-title">Proselytism Codebook</div>
+              <div class="cb-card-count">${cb.rows.length} technique${cb.rows.length !== 1 ? 's' : ''}</div>
+            </div>
+            <div class="cb-wrap">
+              <table class="cb-table">
+                <thead>
+                  <tr>
+                    <th>Code</th>
+                    <th>Frame</th>
+                    <th>Description</th>
+                    <th>Key phrases</th>
+                  </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+              </table>
+            </div>
+          </div>`;
+      }
+
+      renderTabs();
+      renderCodebook();
+      renderProselytism();
+    })();
+    </script>
+  </body>
+</html>

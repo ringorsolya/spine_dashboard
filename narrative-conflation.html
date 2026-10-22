@@ -1,0 +1,574 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Narrative Conflation — AgendaZ SPINE</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <meta name="theme-color" content="#f8f3e9" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <style>
+      .nc-hero { padding: 56px 0 40px; }
+
+      .nc-section {
+        max-width: var(--max);
+        margin: 0 auto;
+        padding: 0 24px 64px;
+      }
+      .nc-section-title { font-size: 22px; font-weight: 700; color: var(--ink); margin: 0 0 6px; }
+      .nc-section-sub { font-size: 14px; color: var(--ink-dim); margin: 0 0 24px; max-width: 760px; }
+      .nc-divider { border: none; border-top: 1px solid var(--border); margin: 0 24px 56px; max-width: var(--max); }
+
+      .domain-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+      .domain-pill {
+        padding: 6px 14px; border-radius: 999px; border: 1.5px solid var(--border-strong);
+        background: var(--paper, #fff); color: var(--ink-dim); font-size: 13px; font-weight: 500;
+        cursor: pointer; transition: all 0.16s var(--ease); white-space: nowrap;
+      }
+      .domain-pill:hover { border-color: var(--purple); color: var(--purple-deep); }
+      .domain-pill.is-active { color: #fff; border-color: transparent; }
+
+      .chart-card {
+        background: var(--paper, #fff); border: 1px solid var(--border); border-radius: var(--radius);
+        box-shadow: var(--shadow-sm); padding: 24px; margin-bottom: 24px;
+      }
+      .chart-card-title { font-size: 14px; font-weight: 600; color: var(--ink); margin: 0 0 4px; }
+      .chart-card-sub { font-size: 12px; color: var(--ink-faint); margin: 0 0 16px; }
+      .chart-wrap { position: relative; }
+
+      .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+      @media (max-width: 820px) { .two-col { grid-template-columns: 1fr; } }
+
+      .stat-row { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 28px; }
+      .stat-chip { background: var(--purple-soft); border-radius: 10px; padding: 10px 16px; min-width: 140px; }
+      .stat-chip-val { font-family: "JetBrains Mono", monospace; font-size: 20px; font-weight: 700; color: var(--purple-deep); line-height: 1.2; }
+      .stat-chip-lbl { font-size: 11px; color: var(--ink-dim); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.04em; }
+
+      .toggle-row { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+      .toggle-label { font-size: 13px; color: var(--ink-dim); }
+      .toggle-btn {
+        padding: 4px 12px; border-radius: 999px; border: 1.5px solid var(--border-strong); background: transparent;
+        color: var(--ink-dim); font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.14s;
+        font-family: inherit;
+      }
+      .toggle-btn.is-on { background: var(--purple-soft); border-color: var(--purple); color: var(--purple-deep); }
+
+      .filter-select {
+        height: 34px; padding: 0 12px; border: 1px solid var(--border-strong); border-radius: 8px;
+        background: var(--bg); color: var(--ink); font-family: inherit; font-size: 13px; outline: none; cursor: pointer;
+      }
+
+      /* ── Window timeline list ─────────────────────────────────────────── */
+      .window-list { display: flex; flex-direction: column; gap: 0; }
+      .window-row {
+        display: grid; grid-template-columns: 30px 108px 1fr 108px; align-items: center; gap: 12px;
+        padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px;
+      }
+      .window-row:last-child { border-bottom: none; }
+      .window-rank { font-family: "JetBrains Mono", monospace; font-weight: 700; color: var(--purple-deep); font-size: 14px; }
+      .window-dates { font-family: "JetBrains Mono", monospace; font-size: 11px; line-height: 1.5; color: var(--ink-dim); white-space: nowrap; }
+      .window-track { position: relative; height: 12px; background: var(--bg-2); border-radius: 6px; min-width: 100px; }
+      .window-bar { position: absolute; top: 0; height: 100%; border-radius: 6px; min-width: 3px; opacity: 0.85; }
+      .window-events { font-family: "JetBrains Mono", monospace; font-size: 12.5px; color: var(--ink); text-align: right; white-space: nowrap; }
+      .window-domain-tag { display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 999px; color: #fff; margin-right: 6px; }
+
+      .tab-row { display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; }
+      .tab-btn {
+        padding: 8px 18px; border-radius: 999px; border: 1px solid var(--border-strong); background: var(--paper);
+        color: var(--ink-dim); font-size: 13.5px; font-weight: 600; font-family: inherit; cursor: pointer;
+        transition: all 0.18s var(--ease);
+      }
+      .tab-btn:hover { border-color: var(--purple); color: var(--purple-deep); }
+      .tab-btn.is-active {
+        background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%); color: #fff; border-color: transparent;
+        box-shadow: 0 4px 14px -4px rgba(109,40,217,0.5);
+      }
+
+      #loading {
+        position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center;
+        z-index: 100; flex-direction: column; gap: 12px; transition: opacity 0.3s;
+      }
+      #loading.hidden { opacity: 0; pointer-events: none; }
+      .spinner { width: 36px; height: 36px; border: 3px solid var(--border-strong); border-top-color: var(--purple); border-radius: 50%; animation: spin 0.7s linear infinite; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      #loading-msg { font-size: 14px; color: var(--ink-dim); }
+    </style>
+      <script src="spine-config.js"></script>
+    <script src="spine-data.js"></script>
+  </head>
+  <body>
+    <div id="loading">
+      <div class="spinner"></div>
+      <div id="loading-msg">Loading narrative conflation data…</div>
+    </div>
+
+    <header class="nav">
+      <a href="index.html" class="logo" aria-label="AgendaZ home">
+        <img src="favicon.svg" class="logo-mark" alt="" aria-hidden="true" width="30" height="30" />
+        <span class="logo-text"><span class="logo-prefix">Agenda</span><span class="logo-suffix">Z SPINE</span></span>
+      </a>
+      <nav class="nav-links" aria-label="Main">
+        <a href="index.html">Home</a>
+        <a href="data-explorer.html">Data Explorer</a>
+        <a href="statistics.html">Statistics</a>
+        <a href="networks.html">Networks</a>
+        <a href="communities.html">Communities</a>
+        <a href="proselytism.html">Proselytism</a>
+        <a href="narrative-conflation.html" class="is-active">Narrative Conflation</a>
+        <a href="latent-dynamics.html">Latent Dynamics</a>
+        <a href="information.html">Information</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="page-hero nc-hero">
+        <div class="page-hero-bg network" aria-hidden="true"></div>
+        <div class="page-hero-content">
+          <span class="section-label">T4.2 · Cross-domain analysis</span>
+          <h1>Narrative Conflation</h1>
+          <p class="lead">
+            When accounts coordinated in one topic domain start echoing narratives from another —
+            or switch between narratives within the same domain — in a short time window.
+            Built from account-network communities and narrative labels across LGBTQ, Ukraine war,
+            and EU elections.
+          </p>
+        </div>
+      </section>
+
+      <!-- ── Summary chips ───────────────────────────────────────────────── -->
+      <div class="nc-section" style="padding-top:48px;padding-bottom:32px">
+        <div class="stat-row" id="summary-chips"></div>
+      </div>
+
+      <hr class="nc-divider" />
+
+      <!-- ── Section: coordinated clusters & narrative composition ────────── -->
+      <div class="nc-section">
+        <h2 class="nc-section-title">Coordinated clusters</h2>
+        <p class="nc-section-sub">
+          The densest account-network communities per domain, and how the narratives their accounts
+          post shift week to week. Pick a domain, then a cluster, to see its narrative-composition timeline.
+        </p>
+        <fieldset class="domain-pills" id="domain-pills-clusters" aria-label="Select domain" style="border:none;padding:0;margin:0"></fieldset>
+
+        <div class="two-col">
+          <div class="chart-card">
+            <div class="chart-card-title">Top communities by post volume</div>
+            <div class="chart-card-sub" id="clusters-sub"></div>
+            <div class="data-table-wrap" style="box-shadow:none;border:1px solid var(--border)">
+              <table class="data-table" style="min-width:0" id="clusters-table">
+                <thead>
+                  <tr><th>Cluster</th><th>Accounts</th><th>Posts</th><th>Posts/acct</th><th>First post</th><th>Last post</th></tr>
+                </thead>
+                <tbody id="clusters-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-card-title" id="cluster-timeline-title">Narrative composition over time</div>
+            <div class="toggle-row" style="margin-bottom:12px">
+              <span class="toggle-label">Cluster:</span>
+              <select class="filter-select" id="sel-cluster"></select>
+            </div>
+            <div class="chart-wrap" style="height:320px">
+              <canvas id="chart-cluster-timeline"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <hr class="nc-divider" />
+
+      <!-- ── Section: conflation windows ───────────────────────────────────── -->
+      <div class="nc-section">
+        <h2 class="nc-section-title">Conflation windows</h2>
+        <p class="nc-section-sub">
+          Contiguous stretches of elevated narrative-merger activity — either accounts crossing
+          domains (cross-domain), or switching narratives within a domain (within-domain).
+          Bar position/length show where each window falls in the observed period
+          (<span id="window-range-label"></span>); normalized divides the weekly merger count by the
+          relevant accounts' posting volume, and should be preferred when comparing across time or domains.
+        </p>
+
+        <div class="tab-row" id="window-scope-tabs">
+          <button class="tab-btn is-active" data-scope="cross">Cross-domain</button>
+          <button class="tab-btn" data-scope="within">Within-domain</button>
+        </div>
+
+        <fieldset class="domain-pills" id="domain-pills-windows" aria-label="Select domain" style="border:none;padding:0;margin:0;display:none"></fieldset>
+
+        <div class="toggle-row">
+          <span class="toggle-label">Values:</span>
+          <button class="toggle-btn is-on" id="btn-windows-raw">Raw counts</button>
+          <button class="toggle-btn" id="btn-windows-norm">Normalized</button>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-card-title" id="windows-title">Cross-domain conflation windows (raw)</div>
+          <div class="chart-card-sub" id="windows-sub"></div>
+          <div class="window-list" id="window-list"></div>
+        </div>
+      </div>
+
+      <hr class="nc-divider" />
+
+      <!-- ── Section: top narrative pairs ──────────────────────────────────── -->
+      <div class="nc-section">
+        <h2 class="nc-section-title">Most-conflated narrative pairs</h2>
+        <p class="nc-section-sub">The narrative pairings that recur most often in merger events, cross-domain (all three domains pooled) and within the selected domain.</p>
+        <fieldset class="domain-pills" id="domain-pills-pairs" aria-label="Select domain" style="border:none;padding:0;margin:0"></fieldset>
+        <div class="two-col">
+          <div class="chart-card">
+            <div class="chart-card-title">Cross-domain pairs</div>
+            <div class="chart-card-sub">Top 10 by merger-event count, pooled across domains</div>
+            <div class="chart-wrap" style="height:360px">
+              <canvas id="chart-cross-pairs"></canvas>
+            </div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-card-title" id="within-pairs-title">Within-domain pairs</div>
+            <div class="chart-card-sub">Top 10 by merger-event count</div>
+            <div class="chart-wrap" style="height:360px">
+              <canvas id="chart-within-pairs"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <hr class="nc-divider" />
+
+      <!-- ── Section: bridge & multi-narrative accounts ────────────────────── -->
+      <div class="nc-section">
+        <h2 class="nc-section-title">Bridge &amp; multi-narrative accounts</h2>
+        <p class="nc-section-sub">Bridge accounts are coordinated in 2 or more domains. Multi-narrative accounts use 2 or more narratives within a single domain.</p>
+
+        <div class="two-col" style="align-items:start">
+          <div class="chart-card">
+            <div class="chart-card-title">Bridge accounts</div>
+            <div class="chart-card-sub" id="bridge-sub"></div>
+            <div class="data-table-wrap" style="box-shadow:none;border:1px solid var(--border);max-height:420px;overflow-y:auto">
+              <table class="data-table" style="min-width:0">
+                <thead><tr><th>Account</th><th>Domains</th><th>#</th></tr></thead>
+                <tbody id="bridge-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-card-title">Multi-narrative accounts</div>
+            <div class="chart-card-sub" id="multi-sub"></div>
+            <div class="toggle-row" style="margin-bottom:10px">
+              <span class="toggle-label">Domain:</span>
+              <select class="filter-select" id="sel-multi-domain">
+                <option value="__all">All domains</option>
+              </select>
+            </div>
+            <div class="data-table-wrap" style="box-shadow:none;border:1px solid var(--border);max-height:340px;overflow-y:auto">
+              <table class="data-table" style="min-width:0">
+                <thead><tr><th>Account</th><th>Domain</th><th>Narratives</th><th>#</th></tr></thead>
+                <tbody id="multi-tbody"></tbody>
+              </table>
+            </div>
+            <div class="pagination" id="multi-pagination" style="margin-top:10px"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <img src="favicon.svg" class="logo-mark" alt="" aria-hidden="true" width="24" height="24" />
+          <span><span class="logo-prefix">Agenda</span><span class="logo-suffix">Z</span></span>
+        </div>
+        <div class="footer-links">
+          <a href="index.html">Home</a>
+          <a href="data-explorer.html">Data Explorer</a>
+          <a href="networks.html">Networks</a>
+          <a href="communities.html">Communities</a>
+          <a href="proselytism.html">Proselytism</a>
+          <a href="narrative-conflation.html">Narrative Conflation</a>
+          <a href="latent-dynamics.html">Latent Dynamics</a>
+          <a href="statistics.html">Statistics</a>
+          <a href="information.html">Information</a>
+        </div>
+        <div class="footer-copy">© <span id="year"></span> AgendaZ · poltextLAB</div>
+      </div>
+    </footer>
+
+    <script>
+    (async () => {
+      const data = await fetch('/api-data/t42.json').then(r => r.json());
+      const DOMAINS = data.domains;
+      const COLORS = data.domainColors;
+      const rangeStart = new Date(data.dateRange.start);
+      const rangeEnd = new Date(data.dateRange.end);
+      const rangeSpanMs = rangeEnd - rangeStart;
+
+      let domainClusters = DOMAINS[0];
+      let domainWindows = DOMAINS[0];
+      let domainPairs = DOMAINS[0];
+      let windowScope = 'cross';
+      let windowsNormalized = false;
+
+      // ── Helpers ──────────────────────────────────────────────────────────
+      function fmtN(n) { return n.toLocaleString(); }
+      function fmtDate(d) {
+        const dt = new Date(d);
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        return `${months[dt.getUTCMonth()]} ${dt.getUTCDate()}, ${dt.getUTCFullYear()}`;
+      }
+      function fmtMonthShort(d) {
+        const dt = new Date(d);
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        return `${months[dt.getUTCMonth()]} ${dt.getUTCFullYear()}`;
+      }
+      function truncate(s, n) { return s && s.length > n ? s.slice(0, n) + '…' : (s || ''); }
+      function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+      function hexToRgba(hex, a) {
+        const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+        return `rgba(${r},${g},${b},${a})`;
+      }
+      function pairColor(i) {
+        const palette = ['#6d28d9','#ec4899','#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#f97316','#06b6d4','#84cc16'];
+        return palette[i % palette.length];
+      }
+
+      // ── Domain pill builders (shared) ───────────────────────────────────
+      function buildDomainPills(containerId, onSelect, initial) {
+        const el = document.getElementById(containerId);
+        for (const dom of DOMAINS) {
+          const btn = document.createElement('button');
+          btn.className = 'domain-pill' + (dom === initial ? ' is-active' : '');
+          btn.textContent = dom;
+          btn.dataset.key = dom;
+          if (dom === initial) btn.style.background = COLORS[dom];
+          btn.addEventListener('click', () => {
+            el.querySelectorAll('.domain-pill').forEach(b => {
+              const active = b.dataset.key === dom;
+              b.classList.toggle('is-active', active);
+              b.style.background = active ? COLORS[dom] : '';
+            });
+            onSelect(dom);
+          });
+          el.appendChild(btn);
+        }
+      }
+
+      // ══ Clusters section ═══════════════════════════════════════════════
+      let chartClusterTimeline;
+      function renderClustersTable() {
+        const rows = data.clusters[domainClusters] || [];
+        document.getElementById('clusters-sub').textContent = `${rows.length} communities · ${domainClusters}`;
+        document.getElementById('clusters-tbody').innerHTML = rows.map(r => `
+          <tr>
+            <td><span class="badge" style="background:${hexToRgba(COLORS[domainClusters],0.14)};color:${COLORS[domainClusters]};border-color:${hexToRgba(COLORS[domainClusters],0.35)}">#${r['Cluster id']}</span></td>
+            <td>${fmtN(r.Accounts)}</td>
+            <td>${fmtN(r.Posts)}</td>
+            <td>${r['Posts/account']}</td>
+            <td style="white-space:nowrap">${esc(r['First post'])}</td>
+            <td style="white-space:nowrap">${esc(r['Last post'])}</td>
+          </tr>`).join('');
+
+        const sel = document.getElementById('sel-cluster');
+        const clusterIds = Object.keys(data.clusterTimelines[domainClusters] || {});
+        const sortedIds = rows.map(r => String(r['Cluster id'])).filter(id => clusterIds.includes(id));
+        sel.innerHTML = sortedIds.map(id => `<option value="${id}">Cluster #${id}</option>`).join('');
+        if (sortedIds.length) { sel.value = sortedIds[0]; renderClusterTimeline(sortedIds[0]); }
+      }
+
+      function renderClusterTimeline(clusterId) {
+        const entry = (data.clusterTimelines[domainClusters] || {})[clusterId];
+        document.getElementById('cluster-timeline-title').textContent = `${domainClusters} — cluster #${clusterId} narrative composition`;
+        if (chartClusterTimeline) chartClusterTimeline.destroy();
+        if (!entry) return;
+        const datasets = entry.narratives.map((n, i) => ({
+          label: n,
+          data: entry.weeks.map(w => entry.series[n][w] || 0),
+          backgroundColor: hexToRgba(pairColor(i), 0.8),
+          borderColor: pairColor(i),
+          borderWidth: 1,
+          borderRadius: 2,
+        }));
+        chartClusterTimeline = new Chart(document.getElementById('chart-cluster-timeline'), {
+          type: 'bar',
+          data: { labels: entry.weeks, datasets },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 10, usePointStyle: true, pointStyle: 'rect',
+                generateLabels: chart => chart.data.datasets.map((ds, i) => ({ text: truncate(ds.label, 30), fillStyle: ds.borderColor, strokeStyle: ds.borderColor, lineWidth: 2, hidden: !chart.isDatasetVisible(i), datasetIndex: i })) } },
+              tooltip: { mode: 'index', filter: item => item.raw > 0, callbacks: { title: ctx => ctx[0].label, label: ctx => `  ${ctx.dataset.label}: ${ctx.raw} posts` } },
+            },
+            scales: {
+              x: { stacked: true, ticks: { maxTicksLimit: 10, maxRotation: 45, font: { family: "'JetBrains Mono', monospace", size: 9 } }, grid: { display: false } },
+              y: { stacked: true, beginAtZero: true, ticks: { precision: 0, font: { family: "'JetBrains Mono', monospace", size: 10 } }, grid: { color: 'rgba(31,13,53,0.05)' } },
+            },
+          },
+        });
+      }
+
+      buildDomainPills('domain-pills-clusters', dom => { domainClusters = dom; renderClustersTable(); }, domainClusters);
+      document.getElementById('sel-cluster').addEventListener('change', e => renderClusterTimeline(e.target.value));
+      renderClustersTable();
+
+      // ══ Conflation windows section ═══════════════════════════════════════
+      document.getElementById('window-range-label').textContent = `${fmtMonthShort(rangeStart)} – ${fmtMonthShort(rangeEnd)}`;
+
+      function currentWindows() {
+        if (windowScope === 'cross') {
+          return windowsNormalized ? data.crossDomainWindowsNormalized : data.crossDomainWindows;
+        }
+        const src = windowsNormalized ? data.withinDomainWindowsNormalized : data.withinDomainWindows;
+        return src[domainWindows] || [];
+      }
+
+      function renderWindows() {
+        const rows = currentWindows();
+        const scopeLabel = windowScope === 'cross' ? 'Cross-domain' : `Within-domain — ${domainWindows}`;
+        document.getElementById('windows-title').textContent = `${scopeLabel} conflation windows (${windowsNormalized ? 'normalized' : 'raw'})`;
+        document.getElementById('windows-sub').textContent = `${rows.length} windows · sorted by merger-event volume`;
+
+        const maxEvents = Math.max(...rows.map(r => r.merger_events_in_window), 1);
+        const color = windowScope === 'cross' ? '#6d28d9' : COLORS[domainWindows];
+
+        document.getElementById('window-list').innerHTML = rows.map(r => {
+          const startPct = Math.max(0, Math.min(100, ((new Date(r.window_start) - rangeStart) / rangeSpanMs) * 100));
+          const endPct = Math.max(0, Math.min(100, ((new Date(r.window_end) - rangeStart) / rangeSpanMs) * 100));
+          const widthPct = Math.max(0.6, endPct - startPct);
+          const intensity = 0.35 + 0.55 * (r.merger_events_in_window / maxEvents);
+          return `
+            <div class="window-row">
+              <div class="window-rank">#${r.rank}</div>
+              <div class="window-dates">${fmtDate(r.window_start)}<br>– ${fmtDate(r.window_end)}</div>
+              <div class="window-track"><div class="window-bar" style="left:${startPct}%;width:${widthPct}%;background:${color};opacity:${intensity.toFixed(2)}"></div></div>
+              <div class="window-events">${fmtN(r.merger_events_in_window)} events<br><span style="color:var(--ink-faint);font-size:10.5px">${r.duration_days}d window</span></div>
+            </div>`;
+        }).join('') || `<div class="table-placeholder">No windows for this selection.</div>`;
+      }
+
+      buildDomainPills('domain-pills-windows', dom => { domainWindows = dom; renderWindows(); }, domainWindows);
+      document.getElementById('window-scope-tabs').addEventListener('click', e => {
+        const btn = e.target.closest('.tab-btn');
+        if (!btn) return;
+        windowScope = btn.dataset.scope;
+        document.querySelectorAll('#window-scope-tabs .tab-btn').forEach(b => b.classList.toggle('is-active', b === btn));
+        document.getElementById('domain-pills-windows').style.display = windowScope === 'within' ? 'flex' : 'none';
+        renderWindows();
+      });
+      document.getElementById('btn-windows-raw').addEventListener('click', () => {
+        windowsNormalized = false;
+        document.getElementById('btn-windows-raw').classList.add('is-on');
+        document.getElementById('btn-windows-norm').classList.remove('is-on');
+        renderWindows();
+      });
+      document.getElementById('btn-windows-norm').addEventListener('click', () => {
+        windowsNormalized = true;
+        document.getElementById('btn-windows-norm').classList.add('is-on');
+        document.getElementById('btn-windows-raw').classList.remove('is-on');
+        renderWindows();
+      });
+      renderWindows();
+
+      // ══ Narrative pairs section ══════════════════════════════════════════
+      let chartCrossPairs, chartWithinPairs;
+      function barChart(canvasId, labels, values, colorFn) {
+        return new Chart(document.getElementById(canvasId), {
+          type: 'bar',
+          data: { labels, datasets: [{ data: values, backgroundColor: labels.map((_, i) => hexToRgba(colorFn(i), 0.75)), borderColor: labels.map((_, i) => colorFn(i)), borderWidth: 1, borderRadius: 4 }] },
+          options: {
+            indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `  ${fmtN(ctx.raw)} events` } } },
+            scales: {
+              x: { ticks: { font: { family: "'JetBrains Mono', monospace", size: 10 } }, grid: { color: 'rgba(31,13,53,0.05)' } },
+              y: { ticks: { font: { size: 10.5 }, callback: (_, i) => truncate(labels[i], 40) }, grid: { display: false } },
+            },
+          },
+        });
+      }
+
+      function renderCrossPairs() {
+        if (chartCrossPairs) chartCrossPairs.destroy();
+        const rows = data.crossDomainTopPairs;
+        const labels = rows.map(r => `${r.narrative_a} ↔ ${r.narrative_b}`);
+        chartCrossPairs = barChart('chart-cross-pairs', labels, rows.map(r => r.events), pairColor);
+      }
+
+      function renderWithinPairs() {
+        if (chartWithinPairs) chartWithinPairs.destroy();
+        const rows = data.withinDomainTopPairs[domainPairs] || [];
+        document.getElementById('within-pairs-title').textContent = `Within-domain pairs — ${domainPairs}`;
+        const labels = rows.map(r => `${r.narrative_a} ↔ ${r.narrative_b}`);
+        chartWithinPairs = barChart('chart-within-pairs', labels, rows.map(r => r.events), () => COLORS[domainPairs]);
+      }
+
+      buildDomainPills('domain-pills-pairs', dom => { domainPairs = dom; renderWithinPairs(); }, domainPairs);
+      renderCrossPairs();
+      renderWithinPairs();
+
+      // ══ Bridge & multi-narrative accounts ═════════════════════════════════
+      document.getElementById('bridge-sub').textContent = `${data.bridgeAccounts.length} accounts coordinated in 2+ domains`;
+      document.getElementById('bridge-tbody').innerHTML = data.bridgeAccounts.map(r => `
+        <tr>
+          <td><code style="font-family:'JetBrains Mono',monospace;font-size:11.5px">${esc(truncate(r.account_id, 26))}</code></td>
+          <td class="text-cell">${esc(r.domains)}</td>
+          <td>${r.n_domains}</td>
+        </tr>`).join('');
+
+      const multiDomainSel = document.getElementById('sel-multi-domain');
+      for (const dom of DOMAINS) multiDomainSel.innerHTML += `<option value="${dom}">${dom}</option>`;
+
+      let multiPage = 1;
+      const MULTI_PAGE_SIZE = 12;
+      function filteredMultiAccounts() {
+        const domFilter = multiDomainSel.value;
+        return domFilter === '__all' ? data.multiNarrativeAccounts : data.multiNarrativeAccounts.filter(r => r.domain === domFilter);
+      }
+      function renderMultiTable() {
+        const rows = filteredMultiAccounts();
+        document.getElementById('multi-sub').textContent = `${rows.length} account–domain pairs using 2+ narratives`;
+        const totalPages = Math.max(1, Math.ceil(rows.length / MULTI_PAGE_SIZE));
+        multiPage = Math.min(multiPage, totalPages);
+        const start = (multiPage - 1) * MULTI_PAGE_SIZE;
+        const pageRows = rows.slice(start, start + MULTI_PAGE_SIZE);
+        document.getElementById('multi-tbody').innerHTML = pageRows.map(r => `
+          <tr>
+            <td><code style="font-family:'JetBrains Mono',monospace;font-size:11.5px">${esc(truncate(r.account_id, 24))}</code></td>
+            <td>${esc(r.domain)}</td>
+            <td class="text-cell">${esc(truncate(r.narratives, 90))}</td>
+            <td>${r.n_narratives}</td>
+          </tr>`).join('') || `<tr><td colspan="4"><div class="table-placeholder">No accounts for this domain.</div></td></tr>`;
+
+        const pag = document.getElementById('multi-pagination');
+        if (totalPages <= 1) { pag.innerHTML = ''; return; }
+        let html = `<button class="page-btn" ${multiPage === 1 ? 'disabled' : ''} data-page="${multiPage - 1}">&#8592;</button>`;
+        html += `<span class="page-btn" style="cursor:default;border:none;background:none">${multiPage} / ${totalPages}</span>`;
+        html += `<button class="page-btn" ${multiPage === totalPages ? 'disabled' : ''} data-page="${multiPage + 1}">&#8594;</button>`;
+        pag.innerHTML = html;
+        pag.querySelectorAll('[data-page]').forEach(btn => btn.addEventListener('click', () => { multiPage = parseInt(btn.dataset.page, 10); renderMultiTable(); }));
+      }
+      multiDomainSel.addEventListener('change', () => { multiPage = 1; renderMultiTable(); });
+      renderMultiTable();
+
+      // ══ Summary chips ══════════════════════════════════════════════════
+      const s = data.summary;
+      document.getElementById('summary-chips').innerHTML = [
+        { val: fmtN(s.bridgeAccounts), lbl: 'Bridge accounts' },
+        { val: fmtN(s.multiNarrativeAccounts), lbl: 'Multi-narrative accounts' },
+        { val: fmtN(s.crossDomainMergerEvents), lbl: 'Cross-domain merger events' },
+        { val: fmtN(s.withinDomainMergerEvents), lbl: 'Within-domain merger events' },
+        { val: fmtN(s.crossDomainWindows), lbl: 'Cross-domain windows' },
+        { val: fmtN(s.withinDomainWindows), lbl: 'Within-domain windows' },
+      ].map(c => `<div class="stat-chip"><div class="stat-chip-val">${c.val}</div><div class="stat-chip-lbl">${c.lbl}</div></div>`).join('');
+
+      document.getElementById('year').textContent = new Date().getFullYear();
+      const loading = document.getElementById('loading');
+      loading.classList.add('hidden');
+      setTimeout(() => loading.remove(), 400);
+    })();
+    </script>
+  </body>
+</html>

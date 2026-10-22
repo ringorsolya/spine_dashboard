@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AgendaZ SPINE — Social Media Agenda-Setting Research Platform</title>
+    <meta name="description" content="AgendaZ is a social media research platform by poltextLAB — ~2.4M posts across 7 platforms, coded for 9 topic domains including LGBTQ, Ukrainian war, EU elections, climate, and migration." />
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <meta name="theme-color" content="#f8f3e9" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+      <script src="spine-config.js"></script>
+    <script src="spine-data.js"></script>
+  </head>
+  <body>
+    <header class="nav">
+      <a href="index.html" class="logo" aria-label="AgendaZ home">
+        <img src="favicon.svg" class="logo-mark" alt="" aria-hidden="true" width="30" height="30" />
+        <span class="logo-text"><span class="logo-prefix">Agenda</span><span class="logo-suffix">Z SPINE</span></span>
+      </a>
+      <nav class="nav-links" aria-label="Main">
+        <a href="index.html">Home</a>
+        <a href="data-explorer.html">Data Explorer</a>
+        <a href="statistics.html">Statistics</a>
+        <a href="networks.html">Networks</a>
+        <a href="communities.html">Communities</a>
+        <a href="proselytism.html">Proselytism</a>
+        <a href="narrative-conflation.html">Narrative Conflation</a>
+        <a href="latent-dynamics.html">Latent Dynamics</a>
+        <a href="information.html">Information</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="home-hero">
+        <div class="home-hero-bg" aria-hidden="true"></div>
+        <div class="home-hero-content">
+          <div class="home-eyebrow">
+            <span class="dot"></span> poltextLAB · Social Media · 7 Platforms · 9 Frame domains
+          </div>
+          <h1 class="home-title">
+            Social media framing,<br />
+            <span class="gradient-text">narratives and networks.</span>
+          </h1>
+          <p class="home-sub">
+            AgendaZ SPINE is a research platform that collects, classifies, and visualises
+            social media posts across Facebook, Instagram, Twitter/X, TikTok, Bluesky, YouTube,
+            and Telegram for nine politically salient topics: LGBTQ rights, the Ukrainian war,
+            EU elections, Climate change, Migration, Public health (COVID-19), Social inequality,
+            Corruption and Security.
+            Posts are coded for narrative claims and illiberal framing codes.
+          </p>
+          <div class="home-cta">
+            <a href="data-explorer.html" class="btn btn-primary">Explore the data</a>
+            <a href="networks.html" class="btn btn-ghost-on-photo">Network visualisations →</a>
+            <a href="communities.html" class="btn btn-ghost-on-photo">View communities →</a>
+            <a href="statistics.html" class="btn btn-ghost-on-photo">Statistics →</a>
+          </div>
+
+          <div class="home-stats">
+            <div class="stat">
+              <div class="stat-num">~2.3M</div>
+              <div class="stat-label">Social media posts</div>
+            </div>
+            <div class="stat">
+              <div class="stat-num">9</div>
+              <div class="stat-label">Topic domains</div>
+            </div>
+            <div class="stat">
+              <div class="stat-num">7</div>
+              <div class="stat-label">Platforms</div>
+            </div>
+            <div class="stat">
+              <div class="stat-num">42</div>
+              <div class="stat-label">Data variables</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="home-strip">
+        <div class="home-strip-inner">
+          <div class="reveal">
+            <div class="label">The dataset</div>
+            <h2>Multi-platform. Narrative-coded. Networked.</h2>
+            <p>
+              AgendaZ SPINE aggregates ~2.3 million posts from Facebook, Instagram, Twitter/X,
+              TikTok, Bluesky, YouTube, and Telegram. Each post is classified for its primary
+              topic frame across nine domains — LGBTQ rights, the Ukrainian war, EU elections,
+              Climate change, Migration, Public health (COVID-19), Social inequality, Corruption
+              and Security — using multilabel classifiers (fine-tuned transformer-/generative-based
+              or semi-supervised models) trained at poltextLAB.
+            </p>
+            <p>
+              A separate illiberal-framing layer assigns narrative labels
+              (Embedding_label) and related illframes codes, enabling researchers to
+              trace how politically charged frames spread across platforms and actor
+              networks.
+            </p>
+          </div>
+          <div class="reveal">
+            <div class="label">Eight tools</div>
+            <h2>Data explorer, networks, communities, statistics, proselytism, conflation, dynamics, and codebooks.</h2>
+            <p>
+              The <strong><a href="data-explorer.html" style="color:var(--purple-deep);border-bottom:1px solid rgba(109,40,217,0.3);">Data Explorer</a></strong>
+              lets you filter by platform, narrative label, or keyword and browse
+              the full post-level dataset with pagination — all 42 variables are
+              accessible in the detail panel.
+            </p>
+            <p>
+              The <strong><a href="networks.html" style="color:var(--purple-deep);border-bottom:1px solid rgba(109,40,217,0.3);">Network Visualisations</a></strong>
+              show how accounts co-share content within each topic domain,
+              rendered as interactive force-directed graphs coloured by community cluster.
+            </p>
+            <p>
+              The <strong><a href="communities.html" style="color:var(--purple-deep);border-bottom:1px solid rgba(109,40,217,0.3);">Communities</a></strong>
+              page breaks down the top 10 largest coordinated clusters per domain —
+              listing the accounts in each cluster, the timeline of co-sharing events,
+              and the posts behind each connection.
+            </p>
+            <p>
+              The <strong><a href="statistics.html" style="color:var(--purple-deep);border-bottom:1px solid rgba(109,40,217,0.3);">Statistics</a></strong>
+              page provides temporal activity charts, peak-period label breakdowns,
+              platform distributions, and a cross-domain comparison for all nine topic domains.
+            </p>
+            <p>
+              The <strong><a href="proselytism.html" style="color:var(--purple-deep);border-bottom:1px solid rgba(109,40,217,0.3);">Proselytism</a></strong>
+              page analyses how illiberal frames are spread using rhetorical proselytism techniques —
+              with cross-domain heatmaps, nested breakdowns, and temporal trends.
+            </p>
+            <p>
+              The <strong><a href="narrative-conflation.html" style="color:var(--purple-deep);border-bottom:1px solid rgba(109,40,217,0.3);">Narrative Conflation</a></strong>
+              page tracks accounts that echo narratives across domains or switch narratives within
+              one — bridge accounts, conflation windows, and the narrative pairs that recur most.
+            </p>
+            <p>
+              The <strong><a href="latent-dynamics.html" style="color:var(--purple-deep);border-bottom:1px solid rgba(109,40,217,0.3);">Latent Dynamics</a></strong>
+              page replays the coordination networks week by week, backtests early-warning
+              indicators, and runs a calibrated network simulator against the real data.
+            </p>
+            <p>
+              The <strong><a href="information.html" style="color:var(--purple-deep);border-bottom:1px solid rgba(109,40,217,0.3);">Information</a></strong>
+              page contains the full annotation codebooks for all nine topic domains and the
+              proselytism rhetorical technique scheme.
+            </p>
+            <p style="margin-top:18px;">
+              <a href="data-explorer.html" class="btn btn-primary" style="font-size:13.5px;padding:11px 20px;">Open Data Explorer →</a>
+            </p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <img src="favicon.svg" class="logo-mark" alt="" aria-hidden="true" width="24" height="24" />
+          <span><span class="logo-prefix">Agenda</span><span class="logo-suffix">Z</span></span>
+        </div>
+        <div class="footer-links">
+          <a href="index.html">Home</a>
+          <a href="data-explorer.html">Data Explorer</a>
+          <a href="networks.html">Networks</a>
+          <a href="communities.html">Communities</a>
+          <a href="proselytism.html">Proselytism</a>
+          <a href="statistics.html">Statistics</a>
+          <a href="narrative-conflation.html">Narrative Conflation</a>
+          <a href="latent-dynamics.html">Latent Dynamics</a>
+          <a href="information.html">Information</a>
+        </div>
+        <div class="footer-copy">© <span id="year"></span> AgendaZ · poltextLAB</div>
+      </div>
+    </footer>
+
+    <script src="script.js"></script>
+  </body>
+</html>
