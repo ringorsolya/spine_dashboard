@@ -1,6 +1,6 @@
 # SPINE Dashboard
 
-Az [AgendaZ SPINE](https://agendaz-spine.vercel.app/) kutatási felület (ELTE CSS, SPINE WP4) tükre
+Az eredetileg az [agendaz-spine.vercel.app](https://agendaz-spine.vercel.app/) címen futó kutatási felület (ELTE CSS, SPINE WP4) tükre
 GitHub Pages-en, Supabase adatháttérrel.
 
 A repó **csak a felület kódját** tartalmazza. Minden adat a `spine-dashboard` Supabase-projektben van,
